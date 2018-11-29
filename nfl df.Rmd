@@ -14,6 +14,7 @@ library(magrittr)
 library(tidyr)
 library(stringr)
 library(ggplot2)
+library(tidytext)
 ```
 
 #scraping and creating full 2018 roster
@@ -159,20 +160,82 @@ top100_more <- top100_more %>%
 ```{r}
 twitter <- top100_more$fortwitter
 
+datalist = list()
+
 # Loop through the twitter handles & store the results as individual dataframes
 for(handle in twitter) {
-  result <- search_tweets(handle, n = 100 , include_rts = FALSE)
+  result <- search_tweets(handle, n = 1000 , include_rts = FALSE)
   result$Source <- handle
+  
+  words <- result %>% 
+    select(status_id, text) %>% 
+    unnest_tokens(word,text)
+    
+  my_stop_words <- stop_words %>% select(-lexicon) %>% 
+  bind_rows(data.frame(word = c("https", "t.co", "rt", "amp","4yig9gzh5t","fyy2ceydhi","78","fakenews")))
 
+  tweet_words <- words %>% anti_join(my_stop_words)
+  
+  bing_lex <- get_sentiments("nrc")
+
+  fn_sentiment <- tweet_words %>% 
+    left_join(bing_lex) 
+  
+  df <- fn_sentiment %>% filter(!is.na(sentiment)) %>% group_by(sentiment) %>% summarise(n=n())
+
+  df_2 <- df %>%
+  mutate(player = handle) %>%
+    spread(key = sentiment, value = n)
+  
+  datalist[[handle]] <- df_2
+  
+  #creating names
   df_name <- substring(handle, 1)
+  
+  words_name <- paste(substring(handle, 1), "word", sep = "_")
 
   if(exists(df_name)) {
     assign(df_name, unique(rbind(get(df_name), result)))
   } else {
     assign(df_name, result)
+    
+    assign(words_name, df_2)
   }
-  Sys.sleep(5)
+  Sys.sleep(10)
 }
 
+sentiments_full = do.call(rbind, datalist)
+```
+
+#combining sentiments with top 100 df
+```{r}
+full100 <- top100_more %>%
+  full_join(sentiments_full, by = c("fortwitter" = "player")) %>%
+  mutate(totalsentiment = anger + anticipation + disgust + fear + joy + negative + positive + sadness +
+           surprise + trust,
+         anger_perc = anger/totalsentiment * 100,
+         anticipation_perc = anticipation/totalsentiment *100,
+         disgust_perc = disgust/totalsentiment *100,
+         fear_perc = fear/totalsentiment *100,
+         joy_perc = joy/totalsentiment *100,
+         negative_perc = negative/totalsentiment *100,
+         positive_perc = positive/totalsentiment *100,
+         sadness_perc = sadness/totalsentiment *100,
+         surprise_perc = surprise/totalsentiment *100,
+         trust_perc = trust/totalsentiment *100)
+
+full100_format <- full100 %>%
+  select(Player, Race, 42:51) %>%
+  gather(sentiment, n, 3:12)
+
+full100_2 <- full100_format %>%
+  dplyr::group_by(sentiment, Race) %>%
+  summarise(mean_perc_sent = mean(n))
+
+#analyzing sentiments
+ggplot(full100_2, aes(x = sentiment, y = mean_perc_sent, fill = Race)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  theme(axis.text.x = element_text(angle = 90))
+  
 ```
 
