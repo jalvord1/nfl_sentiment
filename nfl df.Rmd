@@ -164,7 +164,7 @@ datalist = list()
 
 # Loop through the twitter handles & store the results as individual dataframes
 for(handle in twitter) {
-  result <- search_tweets(handle, n = 1000 , include_rts = FALSE)
+  result <- search_tweets(handle, n = 100 , include_rts = FALSE)
   result$Source <- handle
   
   words <- result %>% 
