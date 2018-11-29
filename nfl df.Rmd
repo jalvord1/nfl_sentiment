@@ -88,10 +88,10 @@ top100 <- url %>%
 top100 <- top100[[1]]
 
 #bring in race df
-race_100 <- read.csv("/Volumes/easystore/Special Studies Fall 2018/nfl top 100 race.csv")
+race100 <- read.csv("/Volumes/easystore/Special Studies Fall 2018/nfl top 100 race.csv")
 
 top100_full <- top100 %>%
-  full_join(race_100)
+  full_join(race100)
 
 #FIXING NAMES FOR JOIN WITH FULL ROSTER
 
