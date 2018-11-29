@@ -76,6 +76,40 @@ full_roster <- df_try2 %>%
   select(-Player)
 ```
 
+```{r}
+#top 100
+url<- "https://en.wikipedia.org/wiki/NFL_Top_100_Players_of_2018"
 
+top100 <- url %>%
+  read_html() %>%
+  html_nodes(xpath = '//*[@id="mw-content-text"]/div/table[3]') %>%
+  html_table()
+
+top100 <- top100[[1]]
+
+#bring in race df
+race_100 <- read.csv("/Volumes/easystore/Special Studies Fall 2018/nfl top 100 race.csv")
+
+top100_full <- top100 %>%
+  full_join(race_100)
+
+#FIXING NAMES FOR JOIN WITH FULL ROSTER
+
+top100_full <- top100_full %>%
+  mutate(Name = ifelse(Player == "A. J. Green", "AJ Green",
+                       ifelse(Player == "DeMarcus Lawrence", "Demarcus Lawrence",
+                              ifelse(Player == "A. J. Bouye", "AJ Bouye",
+                                     ifelse(Player == "Mark Ingram Jr.", "Mark Ingram",
+                                            ifelse(Player == "J. J. Watt", "JJ Watt",
+                                                   ifelse(Player == "Chris Harris Jr.", "Chris Harris",
+                                                          ifelse(Player == "C. J. Mosley", "CJ Mosley", Player))))))))
+
+
+#join with full roster?
+full_w_top100 <- full_roster %>%
+  full_join(top100_full, by = "Name")
+
+write.csv(full_w_top100, "/Volumes/easystore/Special Studies Fall 2018/full roster with race.csv")
+```
 
 
