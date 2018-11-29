@@ -74,6 +74,8 @@ df_try2$Name <- paste(splits[,2], splits[,1], sep = ' ')
 
 full_roster <- df_try2 %>%
   select(-Player)
+
+# write.csv(full_roster, "/Volumes/easystore/Special Studies Fall 2018/full_roster_11-29-18.csv")
 ```
 
 #top 100 scraping
@@ -89,7 +91,7 @@ top100 <- url %>%
 top100 <- top100[[1]]
 
 #bring in race df
-race100 <- read.csv("/Volumes/easystore/Special Studies Fall 2018/nfl top 100 race.csv")
+race100 <- read.csv("/Volumes/easystore/Special Studies Fall 2018/nfl top 100 race.csv", stringsAsFactors = FALSE)
 
 top100_full <- top100 %>%
   full_join(race100)
@@ -110,7 +112,7 @@ top100_full <- top100_full %>%
 full_w_top100 <- full_roster %>%
   full_join(top100_full, by = "Name")
 
-write.csv(full_w_top100, "/Volumes/easystore/Special Studies Fall 2018/full roster with race.csv")
+# write.csv(full_w_top100, "/Volumes/easystore/Special Studies Fall 2018/full roster with race.csv")
 ```
 
 #position by race
@@ -126,7 +128,8 @@ group <- top100_more %>%
   #spread(key = Race, value = n)
 
 ggplot(group, aes(x=Position, y=n, fill=Race)) +
-    geom_bar(stat='identity', position='dodge')
+    geom_bar(stat='identity', position='dodge') +
+  theme(axis.text.x = element_text(angle = 90))
 ```
 
 #play by play data
@@ -143,4 +146,33 @@ top100_more <- top100_more %>%
          firstlast = paste(firstinitial, lastname, sep = "."))
 ```
 
+#creating column to loop through twitter
+```{r}
+top100_more$twitter <- top100_more$Twitter[3]
+
+top100_more <- top100_more %>%
+  mutate(fortwitter = ifelse(Twitter == "", Player, Twitter))
+```
+
+
+#looping through twitter for tweet data
+```{r}
+twitter <- top100_more$fortwitter
+
+# Loop through the twitter handles & store the results as individual dataframes
+for(handle in twitter) {
+  result <- search_tweets(handle, n = 100 , include_rts = FALSE)
+  result$Source <- handle
+
+  df_name <- substring(handle, 1)
+
+  if(exists(df_name)) {
+    assign(df_name, unique(rbind(get(df_name), result)))
+  } else {
+    assign(df_name, result)
+  }
+  Sys.sleep(5)
+}
+
+```
 
