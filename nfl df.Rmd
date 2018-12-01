@@ -164,7 +164,7 @@ datalist = list()
 
 # Loop through the twitter handles & store the results as individual dataframes
 for(handle in twitter) {
-  result <- search_tweets(handle, n = 100 , include_rts = FALSE)
+  result <- search_tweets(handle, n = 100, include_rts = FALSE)
   result$Source <- handle
   
   words <- result %>% 
@@ -201,7 +201,7 @@ for(handle in twitter) {
     
     assign(words_name, df_2)
   }
-  Sys.sleep(10)
+  Sys.sleep(5)
 }
 
 sentiments_full = do.call(rbind, datalist)
@@ -253,7 +253,7 @@ datalist = list()
 
 # Loop through the twitter handles & store the results as individual dataframes
 for(handle in twitter) {
-  result <- search_tweets(handle, n = 100 , include_rts = FALSE)
+  result <- search_tweets(handle, n = 1000, include_rts = FALSE)
   result$Source <- handle
   
   words <- result %>% 
@@ -293,7 +293,41 @@ for(handle in twitter) {
   Sys.sleep(5)
 }
 
-sentiments_full = do.call(rbind, datalist)
+sentiments_T1 = do.call(rbind, datalist)
 
+#write.csv(sentiments_T1, "/Volumes/easystore/Special Studies Fall 2018/sentiments_t1 saints v dallas 180.csv")
+write.csv(sentiments_T1, "/Volumes/easystore/Special Studies Fall 2018/sentiments_t1 saints v dallas 1000.csv")
+
+```
+
+```{r}
+full100 <- top100_more %>%
+  full_join(sentiments_full, by = c("fortwitter" = "player")) %>%
+  mutate(totalsentiment = anger + anticipation + disgust + fear + joy + negative + positive + sadness +
+           surprise + trust,
+         anger_perc = anger/totalsentiment * 100,
+         anticipation_perc = anticipation/totalsentiment *100,
+         disgust_perc = disgust/totalsentiment *100,
+         fear_perc = fear/totalsentiment *100,
+         joy_perc = joy/totalsentiment *100,
+         negative_perc = negative/totalsentiment *100,
+         positive_perc = positive/totalsentiment *100,
+         sadness_perc = sadness/totalsentiment *100,
+         surprise_perc = surprise/totalsentiment *100,
+         trust_perc = trust/totalsentiment *100)
+
+full100_format <- full100 %>%
+  select(Player, Race, 42:51) %>%
+  gather(sentiment, n, 3:12)
+
+full100_2 <- full100_format %>%
+  dplyr::group_by(sentiment, Race) %>%
+  summarise(mean_perc_sent = mean(n))
+
+#analyzing sentiments
+ggplot(full100_2, aes(x = sentiment, y = mean_perc_sent, fill = Race)) +
+  geom_bar(stat = "identity", position = "dodge", color = "black") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_fill_manual(values=c("black", "white"))
 ```
 
