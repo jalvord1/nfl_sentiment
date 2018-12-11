@@ -155,6 +155,11 @@ top100_more <- top100_more %>%
   mutate(fortwitter = ifelse(Twitter == "", Player, Twitter))
 ```
 
+#sourcing cleaning and gathering rmd
+```{r}
+source("cleaning and gathering data.R")
+```
+
 
 #looping through twitter for tweet data
 ```{r}
@@ -336,7 +341,7 @@ ggplot(full100_2, aes(x = sentiment, y = mean_perc_sent, fill = Race)) +
 #pull for gronk and brady
 
 top100_TWO <- top100_more %>%
-  filter(lastname %in% c("GRONKOWSKI", "BRADY"))
+  filter(lastname %in% c("GRONKOWSKI", "BRADY", "BECKHAM"))
 
 twitter <- top100_TWO$fortwitter
 
@@ -344,7 +349,7 @@ datalist = list()
 
 # Loop through the twitter handles & store the results as individual dataframes
 for(handle in twitter) {
-  result <- search_tweets(handle, n = 18000, include_rts = FALSE)
+  result <- search_tweets(handle, n = 6000, include_rts = FALSE)
   result$Source <- handle
   
   words <- result %>% 
@@ -381,7 +386,7 @@ for(handle in twitter) {
     
     assign(words_name, df_2)
   }
-  Sys.sleep(900)
+  Sys.sleep(300)
 }
 
 sentiments_T1 = do.call(rbind, datalist)
@@ -390,4 +395,3 @@ sentiments_T1 = do.call(rbind, datalist)
 #write.csv(sentiments_T1, "/Volumes/easystore/Special Studies Fall 2018/sentiments_t1 saints v dallas 1000.csv")
 
 ```
-
