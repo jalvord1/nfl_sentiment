@@ -12,10 +12,17 @@ library(monkeylearn)
 library(magrittr)
 ```
 
+#sourcing cleaning and gather data file
+```{r}
+source("cleaning and gathering data.R")
+```
+
+
 ```{r}
 top100_HUNT <- top100_more %>%
   filter(lastname == "HUNT")
 
+#creating "vector" of Hunt twitter handle 
 twitter <- top100_HUNT$fortwitter
 
 twitter[2] <- "Kareem Hunt"
@@ -66,8 +73,4 @@ for(handle in twitter) {
 sentiments_T1 = do.call(rbind, datalist)
 ```
 
-#
-```{r}
-
-```
 
