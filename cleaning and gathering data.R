@@ -7,64 +7,12 @@ library(stringr)
 library(ggplot2)
 library(tidytext)
 
-# teams
-teams <- c("BUF", "MIA", "NE", "NYJ", "DAL", "NYG", "PHI", "WAS", "BAL", "CIN", "CLE", "PIT", "CHI", "DET", "GB",
-           "MIN", "HOU", "IND", "JAX", "TEN", "ATL", "CAR", "NO", "TB", "DEN", "KC", "LAC", "OAK", "ARZ", "LAR",
-           "SF", "SEA")
+#Full Roster
+url <-"xx"
+full_roster <- read.csv(url)
 
-tables <- list()
-index <- 1
-for(i in teams){
-  try({
-    url <- paste0("https://www.ourlads.com/nfldepthcharts/roster/", i)
-    table <- url %>% 
-      read_html() %>% 
-      html_table(fill = TRUE)
-    
-    table[[1]]$team <- i
-    
-    tables[index] <- table
-    
-    index <- index + 1
-    
-  })
-}
-df <- do.call("rbind", tables)
-
-#checking to make sure it works
-df_n_teams <- df %>%
-  mutate(n = ifelse(Player == "Active Players", 1, 0)) %>%
-  group_by(n) %>%
-  summarise(teams = sum(n))
-
-#ew- hand coding- want to figure out better way
-df_try2 <- df %>%
-  mutate(status = ifelse(row.names(df) %in% c(2:54, 71:123, 147:199, 227:279, 298:350, 373:425,
-                                              446:498, 522:574, 601:653, 681:733, 757:809, 832:885,
-                                              911:963, 983:1034, 1052:1103, 1125:1177, 1200:1252,
-                                              1274:1326, 1350:1402, 1428:1480, 1500:1553, 1572:1623,
-                                              1646:1698, 1723:1775, 1799:1851, 1874:1926, 1952:2004,
-                                              2025:2077, 2103:2155, 2175:2227, 2249:2301, 2322:2374), "active",
-                         ifelse(row.names(df) %in% c(56:64, 125:133, 201:210, 281:289, 352:360, 427:435,
-                                                     500:509, 576:584, 655:665, 735:745, 811:821, 887:897, 
-                                                     965:974, 1036:1045, 1105:1114, 1179:1188, 1254:1263,
-                                                     1328:1336, 1404:1413, 1482:1491, 1555:1564, 1625:1634,
-                                                     1700:1709, 1777:1787, 1853:1862, 1928:1937, 2006:2015,
-                                                     2079:2088, 2157:2166, 2229:2238, 2303:2311, 2376:2385), "practice",
-                                "reserve"))) %>%
-  filter(!Player %in% c("Active Players", "Practice Squad", "Reserves"))
-
-#how to group by the teams?
-#manually?
-#can I do a loop if I have two lists?
-
-splits <- str_split_fixed(df_try2$Player, ", ", 2)
-df_try2$Name <- paste(splits[,2], splits[,1], sep = ' ')
-
-full_roster <- df_try2 %>%
-  select(-Player)
-
-# write.csv(full_roster, "/Volumes/easystore/Special Studies Fall 2018/full_roster_11-29-18.csv")
+full_roster <- full_roster %>%
+  mutate(join = as.character(paste(FirstName, LastName, sep = " ")))
 
 
 #top 100
@@ -86,46 +34,54 @@ top100_full <- top100 %>%
 #FIXING NAMES FOR JOIN WITH FULL ROSTER
 
 top100_full <- top100_full %>%
-  mutate(Name = ifelse(Player == "A. J. Green", "AJ Green",
-                       ifelse(Player == "DeMarcus Lawrence", "Demarcus Lawrence",
-                              ifelse(Player == "A. J. Bouye", "AJ Bouye",
-                                     ifelse(Player == "Mark Ingram Jr.", "Mark Ingram",
-                                            ifelse(Player == "J. J. Watt", "JJ Watt",
-                                                   ifelse(Player == "Chris Harris Jr.", "Chris Harris",
-                                                          ifelse(Player == "C. J. Mosley", "CJ Mosley", Player))))))))
+  mutate(join = ifelse(Player == "A. J. Green", "Adriel Green",
+                ifelse(Player == "DeMarcus Lawrence", "Demarcus Lawrence",
+                ifelse(Player == "A. J. Bouye", "Arlandus Bouye",
+                ifelse(Player == "Mark Ingram Jr.", "Mark Ingram",
+                ifelse(Player == "J. J. Watt", "Justin Watt",
+                ifelse(Player == "Chris Harris Jr.", "Christopher Harris",
+                ifelse(Player == "C. J. Mosley", "Clinton Mosley", 
+                ifelse(Player == "Deshaun Watson", "Derrick Watson", 
+                ifelse(Player == "Ha Ha Clinton-Dix", "Ha'Sean Clinton-Dix",
+                ifelse(Player == "Geno Atkins", "Gene Atkins", 
+                ifelse(Player == "Zach Ertz", "Zachary Ertz",
+                ifelse(Player == "Zack Martin", "Zachary Martin", 
+                ifelse(Player == "Cam Newton", "Cameron Newton",
+                ifelse(Player == "Cameron Wake", "Derek Wake",
+                ifelse(Player == "Case Keenum", "Casey Keenum",
+                ifelse(Player == "Joey Bosa", "Joseph Bosa",
+                ifelse(Player == "Julio Jones", "Quintorris Jones",
+                ifelse(Player == "Kam Chancellor", "Kameron Chancellor",
+                ifelse(Player == "Matt Ryan", "Matthew Ryan",
+                ifelse(Player == "Matthew Stafford", "John Stafford",
+                ifelse(Player == "Mike Daniels", "Michael Daniels",
+                ifelse(Player == "Odell Beckham Jr.", "Odell Beckham",
+                ifelse(Player == "Rob Gronkowski", "Robert Gronkowski", Player))))))))))))))))))))))))
 
 
 #join with full roster?
 full_w_top100 <- full_roster %>%
-  full_join(top100_full, by = "Name")
+  full_join(top100_full, by = "join")
 
 # write.csv(full_w_top100, "/Volumes/easystore/Special Studies Fall 2018/full roster with race.csv")
 
 
 top100_more <- full_w_top100 %>%
   filter(!is.na(Race)) %>%
+  filter(!(join == "Michael Thomas" & College %in% c("Stanford", "Southern Mississippi"))) %>%
+  select(-Player, -Position) %>%
+  rename(FullName = join)
   #there are more than 1 michael thomas
-  filter(!(Name == "Michael Thomas" & team == "NYG"))
 
+#how many players in each position/race
 group <- top100_more %>%
-  group_by(Race, Position) %>%
+  group_by(Race, PositionAbbr) %>%
   summarise(n = n()) 
 
-
-#Play by play data
-pbp1 <- read.csv("/Volumes/easystore/Special Studies Fall 2018/pbp_11-27-18.csv") 
-
-top100_more <- top100_more %>%
-  mutate(nametosplit = Name) %>%
-  separate(col = nametosplit, into = c("firstname", "lastname"), sep = "\\ ") %>%
-  mutate(lastname = toupper(ifelse(firstname == "Ha", "Clinton-Dix", lastname)),
-         firstinitial = substring(firstname, 1, 1),
-         #to be able to look them up in play by play data
-         firstlast = paste(firstinitial, lastname, sep = "."))
+#removing 
+rm(group)
 
 
 #column for twitter
-top100_more$twitter <- top100_more$Twitter[3]
-
 top100_more <- top100_more %>%
-  mutate(fortwitter = ifelse(Twitter == "", Player, Twitter))
+  mutate(fortwitter = ifelse(Twitter == "", FullName, Twitter))
