@@ -1,0 +1,51 @@
+---
+title: "streaming twitter"
+author: "Julianna Alvord"
+date: "2/2/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+```{r setup, include=FALSe}
+library(httr)
+library(twitteR)
+library(rtweet)
+
+consumer_key <- 'xx'
+consumer_secret <- 'xx'
+access_token <- 'xx'
+access_secret <- 'xx'
+
+setup_twitter_oauth(consumer_key, consumer_secret, access_token, access_secret)
+```
+
+#trying a stream with multiple trending hashtags
+```{r}
+## Stream keywords used to filter tweets
+q <- "#PolarVortex,#SaturdayThoughts,#SuperBowlIn4Words"
+
+## Stream time in seconds so for one minute set timeout = 60
+## For larger chunks of time, I recommend multiplying 60 by the number
+## of desired minutes. This method scales up to hours as well
+## (x * 60 = x mins, x * 60 * 60 = x hours)
+## Stream for 30 minutes
+streamtime <- 5 * 60
+
+## Filename to save json data (backup)
+filename <- "/Volumes/easystore/Special Studies Fall 2018/random_stream_tweets.json"
+```
+
+#streaming
+```{r}
+#save as json for later parsing
+stream_tweets(q = q, timeout = streamtime, file_name = filename, parse = FALSE)
+
+#parse those tweets from above
+rt <- parse_stream(filename)
+```
+
