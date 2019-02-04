@@ -12,6 +12,7 @@ library(httr)
 library(twitteR)
 library(rtweet)
 library(dplyr)
+library(readr)
 ```
 
 #loading in data
@@ -56,9 +57,29 @@ filename <- "/Users/juliannaalvord/Documents/nfl sentiment/sb_tweets.json"
 stream_tweets(q = q, timeout = streamtime, file_name = filename, parse = FALSE, language = "en")
 ```
 
+#parsing json file
 ```{r}
 #filename <- "/Volumes/easystore/Thesis/sb_tweets.json"
 
 #parse those tweets from above
 rt <- parse_stream(filename)
 ```
+
+#writing out as csv
+```{r}
+#write_csv(rt, "/Volumes/easystore/Thesis/superbowl_tweets.csv")
+#wont work because column lists
+#if csv is wanted, 
+
+#saving as rda file instead
+save(rt, file = "/Volumes/easystore/Thesis/superbowl_tweets.rda")
+
+#compressing
+save(rt, file = "/Volumes/easystore/Thesis/superbowl_tweets_comp.rda", compress = "xz")
+```
+
+#testing a load of rda file
+```{r}
+load("/Volumes/easystore/Thesis/superbowl_tweets.rda")
+```
+
