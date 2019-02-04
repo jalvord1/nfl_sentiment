@@ -57,6 +57,8 @@ stream_tweets(q = q, timeout = streamtime, file_name = filename, parse = FALSE, 
 ```
 
 ```{r}
+#filename <- "/Volumes/easystore/Thesis/sb_tweets.json"
+
 #parse those tweets from above
 rt <- parse_stream(filename)
 ```
