@@ -1,0 +1,62 @@
+---
+title: "super bowl 19 stream"
+author: "Julianna Alvord"
+date: "2/3/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(httr)
+library(twitteR)
+library(rtweet)
+library(dplyr)
+```
+
+#loading in data
+```{r}
+starters <- read.csv("/Users/juliannaalvord/Documents/nfl sentiment/sb_starters.csv", stringsAsFactors = FALSE)
+
+#pulling out player names
+name <- starters$players
+
+#cleaning twitter column, selecting that column, then filtering out those without twitter handle
+twitter_clean <- starters %>%
+  mutate(twitter_clean = sub("'", "", twitter)) %>%
+  select(twitter_clean) %>%
+  filter(!twitter_clean == "")
+
+#list of twitter handles
+twitter <- twitter_clean$twitter_clean
+
+#full name and twitter handle for streaming
+full <- c(name, twitter)
+```
+
+#stream key words
+```{r}
+## Stream keywords used to filter tweets
+q <- paste(full, collapse=',' )
+
+## Stream time in seconds so for one minute set timeout = 60
+## For larger chunks of time, I recommend multiplying 60 by the number
+## of desired minutes. This method scales up to hours as well
+## (x * 60 = x mins, x * 60 * 60 = x hours)
+## Stream for 7 hours
+streamtime <- 7 * 60 * 60
+
+## Filename to save json data (backup)
+filename <- "/Users/juliannaalvord/Documents/nfl sentiment/sb_tweets.json"
+```
+
+#streaming
+```{r}
+#save as json for later parsing
+stream_tweets(q = q, timeout = streamtime, file_name = filename, parse = FALSE, language = "en")
+```
+
+```{r}
+#parse those tweets from above
+rt <- parse_stream(filename)
+```
