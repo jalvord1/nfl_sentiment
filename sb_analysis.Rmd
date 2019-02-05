@@ -1,0 +1,65 @@
+---
+title: "SB Analysis"
+author: "Julianna Alvord"
+date: "2/5/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(stringr)
+library(data.table)
+library(tidyr)
+```
+
+#loading in tweets and starters
+```{r}
+load("/Volumes/easystore/Thesis/superbowl_tweets.rda")
+
+starters <- read.csv("/Users/juliannaalvord/Documents/nfl sentiment/sb_starters.csv", stringsAsFactors = FALSE)
+```
+
+#creating same list of 92 which was used to stream twitter
+```{r}
+name <- starters$players
+
+#cleaning twitter column, selecting that column, then filtering out those without twitter handle
+twitter_clean <- starters %>%
+  mutate(twitter_clean = sub("'", "", twitter)) %>%
+  select(twitter_clean) %>%
+  filter(!twitter_clean == "")
+
+#list of twitter handles
+twitter <- twitter_clean$twitter_clean
+
+#full name and twitter handle for streaming
+full <- c(name, twitter)
+
+#making list for str_extract_all
+all_players <- paste(full, collapse='|')
+```
+
+
+#creating new column of players names
+```{r}
+rt_more <- rt %>%
+  mutate(name_text = str_extract_all(text, pattern = all_players),
+         name_quote = str_extract_all(quoted_text, pattern = all_players),
+         all_names = paste(name_text, name_quote, sep = "|"),
+         hour = hour(created_at))
+
+# rt$name_text <- str_extract_all(rt$text, pattern = all_players)
+# 
+# rt$name_quote <- str_extract_all(rt$quoted_text, pattern = all_players)
+```
+
+#joining based on list column
+```{r}
+rt_more2 <- rt_more %>%
+  unnest(name_text)
+
+rt_full <- rt_more %>%
+  left_join(starters, by = c("name_text" = "players"))
+```
+
