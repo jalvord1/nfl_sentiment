@@ -65,11 +65,11 @@ stream_tweets(q = q, timeout = streamtime, file_name = filename, parse = FALSE, 
 rt <- parse_stream(filename)
 ```
 
-#writing out as csv
+#writing out/daving files
 ```{r}
 #write_csv(rt, "/Volumes/easystore/Thesis/superbowl_tweets.csv")
 #wont work because column lists
-#if csv is wanted, 
+#if csv is wanted, no list columns (must unnest)
 
 #saving as rda file instead
 save(rt, file = "/Volumes/easystore/Thesis/superbowl_tweets.rda")
