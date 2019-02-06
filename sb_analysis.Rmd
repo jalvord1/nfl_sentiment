@@ -43,23 +43,102 @@ all_players <- paste(full, collapse='|')
 
 #creating new column of players names
 ```{r}
-rt_more <- rt %>%
-  mutate(name_text = str_extract_all(text, pattern = all_players),
-         name_quote = str_extract_all(quoted_text, pattern = all_players),
-         all_names = paste(name_text, name_quote, sep = "|"),
-         hour = hour(created_at))
+#lowercasing player/handles for searching of text/quoted text
+all_players_low = tolower(all_players)
 
-# rt$name_text <- str_extract_all(rt$text, pattern = all_players)
-# 
-# rt$name_quote <- str_extract_all(rt$quoted_text, pattern = all_players)
+#lower casing text and quoted text to be able to search without missing any players
+rt_more <- rt %>%
+  mutate(text_low = tolower(text),
+         quoted_text_low = tolower(quoted_text),
+         #pulling out the players from either text or quoted text
+         name_text = str_extract_all(paste(text_low, quoted_text_low, sep = ","), pattern = all_players_low),
+         #hour created, just for vizs
+         hour = hour(created_at))
 ```
 
 #joining based on list column
 ```{r}
+#unnesting the name_text list column
 rt_more2 <- rt_more %>%
   unnest(name_text)
-
-rt_full <- rt_more %>%
-  left_join(starters, by = c("name_text" = "players"))
 ```
 
+#creating two 
+```{r}
+#lowering twitter handles and player names for join
+starters2 <- starters %>%
+  mutate(twitter_clean = sub("'", "", twitter),
+         twitter_clean2 = tolower(twitter_clean),
+         name_clean = tolower(players)) %>%
+  select(-c(players, twitter, twitter_clean))
+
+#filtering for tweets that mention a player by their @
+tweets_names <- rt_more2 %>%
+  filter(!grepl("@", name_text))
+
+#filtering for tweets that mention a player by their full name
+tweets_handles <- rt_more2 %>%
+  filter(grepl("@", name_text))
+```
+
+#joining each of these two new dfs with starters data (including race)
+```{r}
+#tweets with names join
+tweets_names2 <- tweets_names %>%
+  left_join(starters2, by = c("name_text" = "name_clean"))
+
+#tweets with handles join
+tweets_handles2 <- tweets_handles %>%
+  left_join(starters2, by = c("name_text" = "twitter_clean2"))
+
+#row binding those two
+tweets_final <- tweets_handles2 %>%
+  bind_rows(tweets_names2) %>%
+  #next code creates final name and twitter columns by filling in with name_text (what was joined on)
+         #in tweets with names df, left join gets rid of "name_clean" col
+  mutate(name_clean_final = ifelse(is.na(name_clean), name_text, name_clean),
+         #in tweets with handles df, left join gets rid of "twitter_clean2" col
+         twitter_clean_final = ifelse(is.na(twitter_clean2), name_text, twitter_clean2))
+```
+
+#further cleaning of 
+```{r}
+tweets_final <- tweets_final %>%
+  #getting rid of incomplete names and twitter handles columns
+  select(-c(name_clean, twitter_clean2)) %>%
+  #making a col of full text (includes quoted text)
+  mutate(full_text = paste(text_low, quoted_text_low, sep = ","))
+
+#need to change one name 
+tweets_final <- tweets_final %>%
+  mutate(name_clean_final = ifelse(name_clean_final == "deatrich wise jr ", "deatrich wise jr.", name_clean_final))
+
+#number for each player
+player_n <- tweets_final %>%
+  group_by(name_clean_final) %>%
+  summarise(n = n(),
+            race = max(Race)) %>%
+  arrange(desc(n))
+
+#now how many for each race group %>%
+race_n <- player_n %>%
+  group_by(race) %>%
+  summarise(total = sum(n))
+```
+
+#adding in a rm function (get rid if necessary)
+```{r}
+rm(starters, new_data, rt_more, tweets_handles, tweets_handles2, tweets_names, tweets_names2, player_n, race_n)
+```
+
+
+
+#saving as a .rda file (again)
+```{r}
+save(rt, file = "/Users/juliannaalvord/Documents/nfl sentiment/unnest_tweets_final.rda")
+```
+
+
+
+
+#checking for duplicates
