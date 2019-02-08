@@ -59,10 +59,19 @@ stream_tweets(q = q, timeout = streamtime, file_name = filename, parse = FALSE, 
 
 #parsing json file
 ```{r}
-#filename <- "/Volumes/easystore/Thesis/sb_tweets.json"
+#parsing the json file by halves
+
+#first half
+filename <- "/Users/juliannaalvord/Documents/nfl sentiment/sb_tweets_half1.json"
 
 #parse those tweets from above
 rt <- parse_stream(filename)
+
+#second half
+filename <- "/Users/juliannaalvord/Documents/nfl sentiment/sb_tweets_half2.json"
+
+#parse tweets from above
+rt2 <- parse_stream(filename)
 ```
 
 #writing out/daving files
@@ -73,6 +82,11 @@ rt <- parse_stream(filename)
 
 #saving as rda file instead
 save(rt, file = "/Volumes/easystore/Thesis/superbowl_tweets.rda")
+
+#adding more saves for new loaded files
+save(rt, file = "/Users/juliannaalvord/Documents/nfl sentiment/sb_tweets_half1.rda")
+
+save(rt2, file = "/Users/juliannaalvord/Documents/nfl sentiment/sb_tweets_half2.rda")
 
 #compressing
 save(rt, file = "/Volumes/easystore/Thesis/superbowl_tweets_comp.rda", compress = "xz")
