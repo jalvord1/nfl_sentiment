@@ -15,7 +15,7 @@ library(tidyr)
 
 #loading in tweets and starters
 ```{r}
-load("/Volumes/easystore/Thesis/superbowl_tweets.rda")
+load("/Users/juliannaalvord/Documents/nfl sentiment/superbowl_tweets.rda")
 
 starters <- read.csv("/Users/juliannaalvord/Documents/nfl sentiment/sb_starters.csv", stringsAsFactors = FALSE)
 ```
