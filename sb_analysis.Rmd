@@ -15,7 +15,9 @@ library(tidyr)
 
 #loading in tweets and starters
 ```{r}
-load("/Users/juliannaalvord/Documents/nfl sentiment/superbowl_tweets.rda")
+#change on 2_11_19
+#loading in full tweets df from sb_analysis_halves
+load("/Users/juliannaalvord/Documents/nfl sentiment/sb_tweets_full.rda")
 
 starters <- read.csv("/Users/juliannaalvord/Documents/nfl sentiment/sb_starters.csv", stringsAsFactors = FALSE)
 ```
@@ -34,7 +36,7 @@ twitter_clean <- starters %>%
 twitter <- twitter_clean$twitter_clean
 
 #full name and twitter handle for streaming
-full <- c(name, twitter)
+full_name <- c(name, twitter)
 
 #making list for str_extract_all
 all_players <- paste(full, collapse='|')
@@ -47,11 +49,9 @@ all_players <- paste(full, collapse='|')
 all_players_low = tolower(all_players)
 
 #lower casing text and quoted text to be able to search without missing any players
-rt_more <- rt %>%
-  mutate(text_low = tolower(text),
-         quoted_text_low = tolower(quoted_text),
-         #pulling out the players from either text or quoted text
-         name_text = str_extract_all(paste(text_low, quoted_text_low, sep = ","), pattern = all_players_low),
+full_more <- full %>%
+  mutate(#pulling out the players from either text or quoted text
+         name_text = str_extract_all(full_text_low, pattern = all_players_low),
          #hour created, just for vizs
          hour = hour(created_at))
 ```
@@ -59,7 +59,7 @@ rt_more <- rt %>%
 #joining based on list column
 ```{r}
 #unnesting the name_text list column
-rt_more2 <- rt_more %>%
+full_more2 <- full_more %>%
   unnest(name_text)
 ```
 
@@ -73,11 +73,11 @@ starters2 <- starters %>%
   select(-c(players, twitter, twitter_clean))
 
 #filtering for tweets that mention a player by their @
-tweets_names <- rt_more2 %>%
+tweets_names <- full_more2 %>%
   filter(!grepl("@", name_text))
 
 #filtering for tweets that mention a player by their full name
-tweets_handles <- rt_more2 %>%
+tweets_handles <- full_more2 %>%
   filter(grepl("@", name_text))
 ```
 
@@ -105,13 +105,13 @@ tweets_final <- tweets_handles2 %>%
 ```{r}
 tweets_final <- tweets_final %>%
   #getting rid of incomplete names and twitter handles columns
-  select(-c(name_clean, twitter_clean2)) %>%
-  #making a col of full text (includes quoted text)
-  mutate(full_text = paste(text_low, quoted_text_low, sep = ","))
+  select(-c(name_clean, twitter_clean2))
 
 #need to change one name 
 tweets_final <- tweets_final %>%
-  mutate(name_clean_final = ifelse(name_clean_final == "deatrich wise jr ", "deatrich wise jr.", name_clean_final))
+  mutate(name_clean_final = ifelse(name_clean_final %in% c("deatrich wise jr ", "deatrich wise jr,"), "deatrich wise jr.", name_clean_final),
+         Race = ifelse(name_clean_final == "deatrich wise jr.", "black", Race))
+  
 
 #number for each player
 player_n <- tweets_final %>%
@@ -128,17 +128,14 @@ race_n <- player_n %>%
 
 #adding in a rm function (get rid if necessary)
 ```{r}
-rm(starters, new_data, rt_more, tweets_handles, tweets_handles2, tweets_names, tweets_names2, player_n, race_n)
+rm(starters, new_data, full_more, tweets_handles, tweets_handles2, tweets_names, tweets_names2, player_n, race_n, full, full_more2)
 ```
 
 
 
 #saving as a .rda file (again)
 ```{r}
-save(rt, file = "/Users/juliannaalvord/Documents/nfl sentiment/unnest_tweets_final.rda")
+save(tweets_final, file = "/Users/juliannaalvord/Documents/nfl sentiment/unnest_tweets_final.rda")
+#to be used for sentiment analyses
 ```
 
-
-
-
-#checking for duplicates
