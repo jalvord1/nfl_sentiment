@@ -1,0 +1,76 @@
+---
+title: "sb_analysis_halves"
+author: "Julianna Alvord"
+date: "2/10/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(dplyr)
+library(stringr)
+library(data.table)
+library(tidyr)
+```
+
+```{r}
+#loading first half of tweets
+load("/Users/juliannaalvord/Documents/nfl sentiment/sb_tweets_half1.rda")
+
+#changing name
+half1 <- rt
+rm(rt)
+
+#loading second half of tweets
+load("/Users/juliannaalvord/Documents/nfl sentiment/sb_tweets_half2.rda")
+
+#changing name
+half2 <- rt2
+rm(rt2)
+```
+
+#row binding tweets and checking duplicates
+```{r}
+#rb
+full <- half1 %>%
+  bind_rows(half2)
+
+#flagging duplicates from text+quoted text
+full <- full %>%
+  mutate(text_low = tolower(text),
+         quoted_text_low = tolower(quoted_text),
+         full_text_low = paste(text_low, quoted_text_low, sep = ","),
+         dup = ifelse(duplicated(full_text_low), 1, 0))
+
+#how many dups?
+table(full$dup, useNA = "a")
+
+#how many of the dups started with rt
+n_dup_rt <- full %>%
+  filter(dup == 1) %>%
+  mutate(rt = ifelse(grepl("^rt", full_text_low), 1, 0)) %>%
+  group_by(rt) %>%
+  summarise(n = n())
+
+#how many of the dups have rt at all
+n_dup_rt2 <- full %>%
+  filter(dup == 1) %>%
+  mutate(rt = ifelse(grepl("rt", full_text_low), 1, 0)) %>%
+  group_by(rt) %>%
+  summarise(n = n())
+
+#only ~86k have rt somewhere in the full text
+
+
+
+#checking for dup in the whole df
+full <- full %>%
+  mutate(full_dup = ifelse(duplicated(full), 1, 0))
+
+#how many full dups
+table(full$full_dup, useNA = "a")
+
+#only 4 full dups, parse tweets using the halves worked
+```
+
