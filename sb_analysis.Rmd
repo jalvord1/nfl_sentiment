@@ -137,5 +137,8 @@ rm(starters, new_data, full_more, tweets_handles, tweets_handles2, tweets_names,
 ```{r}
 save(tweets_final, file = "/Users/juliannaalvord/Documents/nfl sentiment/unnest_tweets_final.rda")
 #to be used for sentiment analyses
+
+#writing out starters also
+write.csv(starters2, "/Users/juliannaalvord/Documents/nfl sentiment/starters2.csv", row.names = FALSE)
 ```
 
