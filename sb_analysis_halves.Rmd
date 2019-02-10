@@ -74,3 +74,9 @@ table(full$full_dup, useNA = "a")
 #only 4 full dups, parse tweets using the halves worked
 ```
 
+#saving as file to be read into sb_analysis
+```{r}
+#saving full as new file
+save(full, file = "/Users/juliannaalvord/Documents/nfl sentiment/sb_tweets_full.rda")
+```
+
