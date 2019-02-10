@@ -59,22 +59,33 @@ stream_tweets(q = q, timeout = streamtime, file_name = filename, parse = FALSE, 
 
 #parsing json file
 ```{r}
+#parsing entire file
+rt <- parse_stream(filename)
+
+#tweets seem to be missing
+
+
+
+##############################
+
+
+
 #parsing the json file by halves
 
 #first half
-filename <- "/Users/juliannaalvord/Documents/nfl sentiment/sb_tweets_half1.json"
+filename2 <- "/Users/juliannaalvord/Documents/nfl sentiment/sb_tweets_half1.json"
 
 #parse those tweets from above
-rt <- parse_stream(filename)
+rt <- parse_stream(filename2)
 
 #second half
-filename <- "/Users/juliannaalvord/Documents/nfl sentiment/sb_tweets_half2.json"
+filename3 <- "/Users/juliannaalvord/Documents/nfl sentiment/sb_tweets_half2.json"
 
 #parse tweets from above
-rt2 <- parse_stream(filename)
+rt2 <- parse_stream(filename3)
 ```
 
-#writing out/daving files
+#writing out/saving files
 ```{r}
 #write_csv(rt, "/Volumes/easystore/Thesis/superbowl_tweets.csv")
 #wont work because column lists
@@ -83,13 +94,17 @@ rt2 <- parse_stream(filename)
 #saving as rda file instead
 save(rt, file = "/Volumes/easystore/Thesis/superbowl_tweets.rda")
 
-#adding more saves for new loaded files
-save(rt, file = "/Users/juliannaalvord/Documents/nfl sentiment/sb_tweets_half1.rda")
-
-save(rt2, file = "/Users/juliannaalvord/Documents/nfl sentiment/sb_tweets_half2.rda")
-
 #compressing
 save(rt, file = "/Volumes/easystore/Thesis/superbowl_tweets_comp.rda", compress = "xz")
+
+
+###########################
+
+
+#adding more saves for new loaded files (halves)
+save(rt2, file = "/Users/juliannaalvord/Documents/nfl sentiment/sb_tweets_half1.rda")
+
+save(rt3, file = "/Users/juliannaalvord/Documents/nfl sentiment/sb_tweets_half2.rda")
 ```
 
 #testing a load of rda file
