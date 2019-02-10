@@ -63,7 +63,7 @@ rt_more2 <- rt_more %>%
   unnest(name_text)
 ```
 
-#creating two 
+#creating two dfs
 ```{r}
 #lowering twitter handles and player names for join
 starters2 <- starters %>%
@@ -101,7 +101,7 @@ tweets_final <- tweets_handles2 %>%
          twitter_clean_final = ifelse(is.na(twitter_clean2), name_text, twitter_clean2))
 ```
 
-#further cleaning of 
+#further cleaning of final df
 ```{r}
 tweets_final <- tweets_final %>%
   #getting rid of incomplete names and twitter handles columns
