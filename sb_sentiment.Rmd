@@ -1,0 +1,212 @@
+---
+title: "sb_sentiment"
+author: "Julianna Alvord"
+date: "2/10/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(dplyr)
+library(rtweet)
+library(rvest)
+library(magrittr)
+library(tidyr)
+library(stringr)
+library(ggplot2)
+library(tidytext)
+```
+
+#loading data
+```{r}
+#loading starters data
+starters2 <- read.csv("/Users/juliannaalvord/Documents/nfl sentiment/starters2.csv", stringsAsFactors = FALSE)
+
+#loading tweets file from sb_analysis
+load("/Users/juliannaalvord/Documents/nfl sentiment/unnest_tweets_final.rda")
+```
+
+
+#running loop to get sentiments
+```{r}
+#list of names for loop
+names <- as.list(starters2$name_clean)
+
+#empty list to add sentiments for each player
+datalist = list()
+
+for(i in 1:50) {
+  
+  #filter for each person
+  tweets <- tweets_final %>%
+    filter(name_clean_final == names[i])
+  
+  #pick out words
+  words <- tweets %>% 
+    select(status_id, full_text_low) %>% 
+    unnest_tokens(word,full_text_low)
+  
+  #creating df of stop words  
+  my_stop_words <- stop_words %>% 
+    select(-lexicon) %>% 
+    bind_rows(data.frame(word = c("https", "t.co", "rt", "amp","4yig9gzh5t","fyy2ceydhi","78","fakenews")))
+
+  #anti-join with stop words to filter those words out
+  tweet_words <- words %>% 
+    anti_join(my_stop_words)
+  
+  #getting sentiments
+  bing_lex <- get_sentiments("nrc")
+
+  #joining sentiments with non-stop words from tweets
+  fn_sentiment <- tweet_words %>% 
+    left_join(bing_lex) 
+  
+  #creating df with n of sentiments
+  df <- fn_sentiment %>% 
+    filter(!is.na(sentiment)) %>% 
+    group_by(sentiment) %>% 
+    summarise(n=n())
+
+  #making df of sentiments for each person
+  df_2 <- df %>%
+  mutate(player = names[i]) %>%
+  spread(key = sentiment, value = n)
+  
+  datalist[[i]] <- df_2
+  
+  
+  
+  ######uncomment next part if you want words df or sentiments dfs to be loaded into environment
+  
+  
+  
+  #creating name for dfs
+  #df_name <- name
+  
+  #words_name <- paste(name, "word", sep = "_")
+
+  #assigning df_name to df
+  #assign(df_name, df_2)
+  
+}
+
+#sentiments n for all players
+sentiments_full = do.call(rbind, datalist)
+```
+
+#joining sentiments to starters df
+```{r}
+#players to character instead of list
+sentiments_full2 <- sentiments_full %>%
+  mutate(player = as.character(player))
+
+#creating percentages
+starters_sentiment <- starters2 %>%
+  left_join(sentiments_full2, by = c("name_clean" = "player")) %>%
+  mutate(totalsentiment = anger + anticipation + disgust + fear + joy + negative + positive + sadness +
+           surprise + trust,
+         anger_perc = anger/totalsentiment * 100,
+         anticipation_perc = anticipation/totalsentiment *100,
+         disgust_perc = disgust/totalsentiment *100,
+         fear_perc = fear/totalsentiment *100,
+         joy_perc = joy/totalsentiment *100,
+         negative_perc = negative/totalsentiment *100,
+         positive_perc = positive/totalsentiment *100,
+         sadness_perc = sadness/totalsentiment *100,
+         surprise_perc = surprise/totalsentiment *100,
+         trust_perc = trust/totalsentiment *100)
+
+
+#gathering by race, player, and sentiment
+starters_sent_format <- starters_sentiment %>%
+  select(name_clean, Race, 19:28) %>%
+  gather(sentiment, n, 3:12)
+
+#grouping by sentiment and race then making mean for each sentiment/race
+starter_sent_2 <- starters_sent_format %>%
+  dplyr::group_by(sentiment, Race) %>%
+  summarise(mean_perc_sent = mean(n))
+
+
+#sentiments by race
+ggplot(starter_sent_2, aes(x = sentiment, y = mean_perc_sent, fill = Race)) +
+  geom_bar(stat = "identity", position = "dodge", color = "black") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_fill_manual(values=c("black", "white"))
+```
+
+#grouping by team
+```{r}
+#gathering by race, player, team, and sentiment
+starters_sent_format <- starters_sentiment %>%
+  select(name_clean, Race, team, position, 19:28) %>%
+  gather(sentiment, n, 5:14)
+
+#grouping by sentiment and race then making mean for each sentiment/race
+starter_sent_2 <- starters_sent_format %>%
+  dplyr::group_by(sentiment, Race, team) %>%
+  summarise(mean_perc_sent = mean(n))
+
+#same viz but by team as well
+ggplot(starter_sent_2, aes(x = sentiment, y = mean_perc_sent, fill = Race)) +
+  geom_bar(stat = "identity", position = "dodge", color = "black") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_fill_manual(values=c("black", "white")) + facet_wrap(~team, ncol = 1)
+```
+
+#looking only at qbs and receivers
+```{r}
+#filtering for qb and receivers
+starters_sentiment_filtered <- starters_sentiment %>%
+  filter(position %in% c("WR", "RB", "QB", "TE"))
+
+#same analysis as above
+
+#gathering by race, player, team, and sentiment
+starters_sent_format <- starters_sentiment_filtered %>%
+  select(name_clean, Race, team, position, 19:28) %>%
+  gather(sentiment, n, 5:14)
+
+#grouping by sentiment and race then making mean for each sentiment/race
+starter_sent_2 <- starters_sent_format %>%
+  dplyr::group_by(sentiment, Race, team) %>%
+  summarise(mean_perc_sent = mean(n))
+
+#same viz but by team as well
+ggplot(starter_sent_2, aes(x = sentiment, y = mean_perc_sent, fill = Race)) +
+  geom_bar(stat = "identity", position = "dodge", color = "black") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_fill_manual(values=c("black", "white")) + facet_wrap(~team, ncol = 1)
+```
+
+#grouping sentiments to only positive or negative
+```{r}
+#gathering by race, player, team, and sentiment
+starters_sent_format <- starters_sentiment_filtered %>%
+  select(name_clean, Race, team, position, 19:28) %>%
+  gather(sentiment, n, 5:14) %>%
+  #grouping into neg and pos only
+  mutate(sentiment_group = ifelse(sentiment %in% c("anger_perc", "disgust_perc",
+                                                   "fear_perc", "negative_perc",
+                                                   "sadness_perc", "surprise_perc"), "negative", "positive"))
+
+#grouping by sentiment and race then making mean for each sentiment/race
+starter_sent_2 <- starters_sent_format %>%
+  dplyr::group_by(sentiment_group, Race, team) %>%
+  summarise(mean_perc_sent = mean(n))
+
+#same viz but by team as well
+ggplot(starter_sent_2, aes(x = sentiment_group, y = mean_perc_sent, fill = Race)) +
+  geom_bar(stat = "identity", position = "dodge", color = "black") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_fill_manual(values=c("black", "white")) + facet_wrap(~team, ncol = 1)
+```
+
+
+#writing out csv of sentiments
+```{r}
+write.csv(starters_sentiment, "/Users/juliannaalvord/Documents/nfl sentiment/starters_sentiments.csv", row.names = FALSE)
+```
+
