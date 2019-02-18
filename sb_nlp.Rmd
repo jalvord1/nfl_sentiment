@@ -1,0 +1,140 @@
+---
+title: "nlp_statistics"
+author: "Julianna Alvord"
+date: "2/13/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(rtweet)
+library(rvest)
+library(magrittr)
+library(tidyr)
+library(stringr)
+library(ggplot2)
+library(tidytext)
+```
+
+#loading data
+```{r}
+#loading starters data
+starters2 <- read.csv("/Users/juliannaalvord/Documents/nfl sentiment/starters2.csv", stringsAsFactors = FALSE)
+
+#loading tweets file from sb_analysis
+load("/Users/juliannaalvord/Documents/nfl sentiment/unnest_tweets_final.rda")
+
+#loading in bing sentiment
+starters_sent <- read.csv("/Users/juliannaalvord/Documents/nfl sentiment/starters_sentiments_bing.csv", stringsAsFactors = FALSE)
+```
+
+
+#counting words for all tweets
+```{r}
+#one word per row
+words <- tweets_final %>% 
+    select(status_id, full_text_low) %>% 
+    unnest_tokens(word,full_text_low)
+
+#specifying stop words
+my_stop_words <- stop_words %>% 
+    select(-lexicon) %>% 
+    bind_rows(data.frame(word = c("https", "t.co", "rt", "amp","4yig9gzh5t","fyy2ceydhi","78","fakenews", "na")))
+
+#removing stop words
+tweet_words <- words %>% 
+    anti_join(my_stop_words)
+
+#word counts
+word_counts <- tweet_words %>%
+  count(word, sort = TRUE)
+
+#viz
+ggplot(word_counts %>% head(n = 20L) %>% mutate(word = reorder(word, n)), aes(word, n)) +
+  geom_col() +
+  xlab(NULL) +
+  coord_flip()
+```
+
+#most popular words without names
+```{r}
+#list names
+names <- starters2$name_clean
+
+#deleting those with no twitter handle
+twitter_clean <- starters2 %>%
+  filter(!twitter_clean2 == "")
+
+#list of twitter handles
+twitter <- twitter_clean$twitter_clean2
+
+#full name and twitter handle list
+full_name <- c(name, twitter)
+
+
+#retrying above code
+#stop words should include names and twitter handles
+my_stop_words <- stop_words %>% 
+    select(-lexicon) %>% 
+    bind_rows(data.frame(word = c("https", "t.co", "rt", "amp","4yig9gzh5t","fyy2ceydhi","78","fakenews", "na", 
+                                  "jeuct0obcr", "3", "1", full_name))) %>%
+    unnest_tokens(word,word)
+
+#get rid of stop words
+tweet_words <- words %>% 
+    anti_join(my_stop_words)
+
+#how many of each word
+word_counts <- tweet_words %>%
+  count(word, sort = TRUE)
+
+#viz, no names
+ggplot(word_counts %>% head(n = 20L) %>% mutate(word = reorder(word, n)), aes(word, n)) +
+  geom_col() +
+  xlab(NULL) +
+  coord_flip()
+```
+
+#adding sentiment to the words to see if any are missing
+```{r}
+#getting sentiments- using bing
+  bing_lex <- get_sentiments("bing")
+
+#joining words with the sentiments
+full_sentiments <- word_counts %>%
+  left_join(bing_lex)
+```
+Some words that stick out are "goat" --> positive, "history" --> positive, "ring" --> positive, "rings" --> positive, "dynast" --> positive, "clutch" --> positive, "goal" --> ?, "god" --> ?, words about the plays like c("tackle", "pass", "catch", "pick"), "congrats", "suspended", "maga", "america", "patriot" --> should not have sentiment, "hope", "legend", "drive", "warrior", "champs", "offensive" --> should not have sentiment, "savage", "savage's", "beast", "g.o.a.t.", n-word. 
+
+
+
+#For each team, who has the most tweet/words about them
+```{r}
+#viz of tweets
+n_tweets <- tweets_final %>%
+  group_by(name_clean_final) %>% 
+  summarise(n = n())
+
+starters_sent_n <- starters_sent %>%
+  left_join(n_tweets, by = c("name_clean" = "name_clean_final")) %>%
+  gather(sentiment, perc, 11:12)
+
+#number of tweets for new england
+ggplot(starters_sent_n %>% 
+         filter(team == "NE") %>% 
+         mutate(name_clean = reorder(name_clean, n)), aes(name_clean, n)) +
+  geom_col(aes(color = sentiment, fill = sentiment)) +
+  xlab(NULL) +
+  ylab("n tweets") +
+  coord_flip() 
+
+#viz of words
+ggplot(starters_sent %>% mutate(name_clean = reorder(name_clean, totalsentiment)), aes(name_clean, totalsentiment)) +
+  geom_col() +
+  xlab(NULL) +
+  ylab("n words") +
+  coord_flip() +
+  facet_wrap(~team, ncol = 2)
+```
+
