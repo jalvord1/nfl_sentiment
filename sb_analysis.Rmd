@@ -39,7 +39,7 @@ twitter <- twitter_clean$twitter_clean
 full_name <- c(name, twitter)
 
 #making list for str_extract_all
-all_players <- paste(full, collapse='|')
+all_players <- paste(full_name, collapse='|')
 ```
 
 
@@ -109,7 +109,8 @@ tweets_final <- tweets_final %>%
 
 #need to change one name 
 tweets_final <- tweets_final %>%
-  mutate(name_clean_final = ifelse(name_clean_final %in% c("deatrich wise jr ", "deatrich wise jr,"), "deatrich wise jr.", name_clean_final),
+  mutate(name_clean_final = ifelse(name_clean_final %in% c("deatrich wise jr ", "deatrich wise jr,"), 
+                                   "deatrich wise jr.", name_clean_final),
          Race = ifelse(name_clean_final == "deatrich wise jr.", "black", Race))
   
 
