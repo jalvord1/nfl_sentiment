@@ -1,0 +1,192 @@
+---
+title: "archive_cleaning"
+author: "Julianna Alvord"
+date: "3/7/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(dplyr)
+library(stringr)
+library(data.table)
+library(tidyr)
+library(zoo)
+```
+
+#loading in the data
+```{r}
+full <- read.csv("/Users/juliannaalvord/Documents/nfl sentiment/final_data/full_all_tweets.csv", stringsAsFactors = F)
+
+subset <- read.csv("/Users/juliannaalvord/Documents/nfl sentiment/final_data/final_subset.csv", stringsAsFactors = F)
+
+outcomes <- read.csv("/Users/juliannaalvord/Documents/nfl sentiment/final_data/outcomes.csv", stringsAsFactors = F)
+```
+
+#creating the full all tweets dataset 
+```{r}
+files = list.files(path = "/Users/juliannaalvord/Documents/nfl sentiment/final_data/", pattern="tweets_all*",
+                   full.names = F)
+
+path = "/Users/juliannaalvord/Documents/nfl sentiment/final_data/"
+
+for (i in 1:length(files)) {
+  
+  assign(paste("t", i, sep = "_"), read.csv(paste(path, files[i], sep = "")))
+  
+}
+
+#adding time column for each df
+t_1 <- t_1 %>%
+  mutate(time = "t_1")
+
+t_2 <- t_2 %>%
+  mutate(time = "t_2")
+
+t_3 <- t_3 %>%
+  mutate(time = "t_3")
+
+t_4 <- t_4 %>%
+  mutate(time = "t_4")
+
+t_5 <- t_5 %>%
+  mutate(time = "t_5",
+         ID = as.factor(ID),
+         RTs = as.factor(RTs))
+
+#row_binding the three times
+full <- bind_rows(t_1, t_2, t_3, t_4, t_5)
+```
+
+
+#cleaning tweets
+```{r}
+#adding in full text (regular plus quote text)
+full <- full %>%
+  mutate(text_low = tolower(Tweets),
+         quoted_text_low = tolower(Q_or_RT),
+         full_text_low = paste(text_low, quoted_text_low, sep = ","),
+         dup = ifelse(duplicated(full_text_low), 1, 0))
+
+#How many dups?
+table(full$dup, useNA = "a")
+#~6k duplicates
+```
+
+#cleaning subset df
+```{r}
+name <- subset$Name
+
+#cleaning twitter column, selecting that column, then filtering out those without twitter handle
+twitter_clean <- subset %>%
+  mutate(twitter_clean = sub("'", "", Twitter_handle)) %>%
+  select(twitter_clean) %>%
+  filter(!twitter_clean == "")
+
+#list of twitter handles
+twitter <- twitter_clean$twitter_clean
+
+#full name and twitter handle for streaming
+full_name <- c(name, twitter)
+
+#making list for str_extract_all
+all_players <- paste(full_name, collapse='|')
+```
+
+#creating new column of player names
+```{r}
+#lowercasing the player names
+all_players_low = tolower(all_players)
+
+#lower casing text and quoted text to be able to search without missing any players
+full_more <- full %>%
+  mutate(#pulling out the players from either text or quoted text
+         name_text = str_extract_all(full_text_low, pattern = all_players_low))
+
+#if length = 0 then make na
+full_more$name_text[lengths(full_more$name_text) == 0] <- NA_character_
+
+#making na values == "a"
+full_more <- full_more %>%
+  mutate(name_text = ifelse(is.na(name_text), "a", name_text))
+```
+
+#unnest
+```{r}
+#unnesting the name_text list column
+full_more2 <- full_more %>%
+  unnest(name_text)
+
+#fill back in with na and then with above value (using na.locf func)
+full_more2 <- full_more2 %>%
+  mutate(name_text = ifelse(name_text == "a", NA_character_, name_text))
+
+#need to manually do first one
+full_more2$name_text[1] <- "travis kelce"
+
+full_more2$name_text <- na.locf(full_more2$name_text)
+```
+
+
+#creating two dfs
+```{r}
+#lowering twitter handles and player names for join
+subset2 <- subset %>%
+  mutate(twitter_clean = sub("'", "", Twitter_handle),
+         twitter_clean2 = tolower(twitter_clean),
+         name_clean = tolower(Name)) %>%
+  select(-c(full_twitter, Twitter_handle, twitter_clean))
+
+#filtering for tweets that mention a player by their @
+tweets_names <- full_more2 %>%
+  filter(!grepl("@", name_text))
+
+#filtering for tweets that mention a player by their full name
+tweets_handles <- full_more2 %>%
+  filter(grepl("@", name_text))
+```
+
+#joining each of these two dfs with starter data
+```{r}
+#tweets with names join
+tweets_names2 <- tweets_names %>%
+  left_join(subset2, by = c("name_text" = "name_clean"))
+
+#tweets with handles join
+tweets_handles2 <- tweets_handles %>%
+  left_join(subset2, by = c("name_text" = "twitter_clean2"))
+
+#row binding those two
+tweets_final <- tweets_handles2 %>%
+  bind_rows(tweets_names2) %>%
+  #next code creates final name and twitter columns by filling in with name_text (what was joined on)
+         #in tweets with names df, left join gets rid of "name_clean" col
+  mutate(name_clean_final = ifelse(is.na(name_clean), name_text, name_clean),
+         #in tweets with handles df, left join gets rid of "twitter_clean2" col
+         twitter_clean_final = ifelse(is.na(twitter_clean2), name_text, twitter_clean2),
+         name_clean_final = ifelse(name_clean_final %in% c("a j  green", "a.j, green"), "a.j. green", name_clean_final))
+
+table(tweets_final$name_clean_final, useNA = "a")
+```
+
+#merging with wins and losses
+```{r}
+tweets_final1 <- tweets_final %>%
+  left_join(outcomes, by = c("Team", "time"))
+
+tweets_final <- tweets_final1
+```
+
+
+
+#write out new csvs
+```{r}
+#save final_tweets df
+save(tweets_final, file = "/Users/juliannaalvord/Documents/nfl sentiment/final_data/archive_tweets_final.rda")
+#to be used for sentiment analyses
+
+#writing out new subset also
+write.csv(subset2, "/Users/juliannaalvord/Documents/nfl sentiment/final_data/subset2.csv", row.names = FALSE)
+```
+
