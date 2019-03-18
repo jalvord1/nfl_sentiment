@@ -1,0 +1,95 @@
+---
+title: "archive_nlp"
+author: "Julianna Alvord"
+date: "3/15/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(dplyr)
+library(rtweet)
+library(rvest)
+library(magrittr)
+library(tidyr)
+library(stringr)
+library(ggplot2)
+library(tidytext)
+```
+
+#loading data
+```{r}
+#loading starters data
+subset2 <- read.csv("/Users/juliannaalvord/Documents/nfl sentiment/final_data/subset2.csv", stringsAsFactors = FALSE)
+
+#loading tweets file from archive_cleaning
+load("/Users/juliannaalvord/Documents/nfl sentiment/final_data/archive_tweets_final.rda")
+```
+
+#counting words for all tweets
+```{r}
+#one word per row
+words <- tweets_final %>% 
+    select(ID, full_text_low) %>% 
+    unnest_tokens(word,full_text_low)
+
+#specifying stop words
+my_stop_words <- stop_words %>% 
+    select(-lexicon) %>% 
+    bind_rows(data.frame(word = c("https", "t.co", "rt", "amp","4yig9gzh5t","fyy2ceydhi","78","fakenews", "na")))
+
+#removing stop words
+tweet_words <- words %>% 
+    anti_join(my_stop_words)
+
+#word counts
+word_counts <- tweet_words %>%
+  count(word, sort = TRUE)
+
+#viz
+ggplot(word_counts %>% head(n = 20L) %>% mutate(word = reorder(word, n)), aes(word, n)) +
+  geom_col() +
+  xlab(NULL) +
+  coord_flip()
+```
+
+
+#most popular words without names
+```{r}
+#list names
+names <- subset2$name_clean
+
+#deleting those with no twitter handle
+twitter_clean <- subset2 %>%
+  filter(!twitter_clean2 == "")
+
+#list of twitter handles
+twitter <- twitter_clean$twitter_clean2
+
+#full name and twitter handle list
+full_name <- c(name, twitter)
+
+
+#retrying above code
+#stop words should include names and twitter handles
+my_stop_words <- stop_words %>% 
+    select(-lexicon) %>% 
+    bind_rows(data.frame(word = c("https", "t.co", "rt", "amp","4yig9gzh5t","fyy2ceydhi","78","fakenews", "na", 
+                                  "jeuct0obcr", "3", "1", full_name))) %>%
+    unnest_tokens(word,word)
+
+#get rid of stop words
+tweet_words <- words %>% 
+    anti_join(my_stop_words)
+
+#how many of each word
+word_counts <- tweet_words %>%
+  count(word, sort = TRUE)
+
+#viz, no names
+ggplot(word_counts %>% head(n = 20L) %>% mutate(word = reorder(word, n)), aes(word, n)) +
+  geom_col() +
+  xlab(NULL) +
+  coord_flip()
+```
