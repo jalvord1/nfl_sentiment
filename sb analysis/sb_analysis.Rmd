@@ -17,9 +17,9 @@ library(tidyr)
 ```{r}
 #change on 2_11_19
 #loading in full tweets df from sb_analysis_halves
-load("/Users/juliannaalvord/Documents/nfl sentiment/sb_tweets_full.rda")
+load("/Users/juliannaalvord/Documents/nfl sentiment/sb analysis/sb_tweets_full.rda")
 
-starters <- read.csv("/Users/juliannaalvord/Documents/nfl sentiment/sb_starters.csv", stringsAsFactors = FALSE)
+starters <- read.csv("/Users/juliannaalvord/Documents/nfl sentiment/sb analysis/sb_starters.csv", stringsAsFactors = FALSE)
 ```
 
 #creating same list of 92 which was used to stream twitter
