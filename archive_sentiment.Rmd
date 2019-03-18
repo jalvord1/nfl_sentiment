@@ -1,0 +1,486 @@
+---
+title: "archive_sentiment"
+author: "Julianna Alvord"
+date: "3/15/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(dplyr)
+library(rtweet)
+library(rvest)
+library(magrittr)
+library(tidyr)
+library(stringr)
+library(ggplot2)
+library(tidytext)
+```
+
+#loading the data
+```{r}
+#loading starters data
+subset2 <- read.csv("/Users/juliannaalvord/Documents/nfl sentiment/final_data/subset2.csv", stringsAsFactors = FALSE)
+
+#loading tweets file from archive_cleaning
+load("/Users/juliannaalvord/Documents/nfl sentiment/final_data/archive_tweets_final.rda")
+
+#loading outcomes
+outcomes <- read.csv("/Users/juliannaalvord/Documents/nfl sentiment/final_data/outcomes.csv", stringsAsFactors = F)
+```
+
+#adding some sentiments to bing lexicon
+```{r}
+#creating data frame with additional sentiments
+extra<-data.frame(c("rings", "ring", "history", "clutch", "congrats", "dynasty", "goat", "g.o.a.t."), 
+               c("positive", "positive", "positive", "positive", "positive", "positive", "positive", "positive"))
+names(extra) <- c("word", "sentiment")
+
+#binding to bing lexicon
+bing_lex <- get_sentiments("bing")
+
+sent_full <- rbind(bing_lex, extra)
+```
+
+#running loop to get sentiments
+```{r}
+#list of names for loop
+names <- as.list(subset2$name_clean)
+
+#empty list to add sentiments for each player
+datalist = list()
+
+for(i in 1:24) {
+  
+  #filter for each person
+  tweets <- tweets_final %>%
+    filter(name_clean_final == names[i])
+  
+  #pick out words
+  words <- tweets %>% 
+    select(ID, full_text_low) %>% 
+    unnest_tokens(word,full_text_low)
+  
+  #creating df of stop words  
+  my_stop_words <- stop_words %>% 
+    select(-lexicon) %>% 
+    bind_rows(data.frame(word = c("https", "t.co", "rt", "amp","4yig9gzh5t","fyy2ceydhi","78","fakenews")))
+
+  #anti-join with stop words to filter those words out
+  tweet_words <- words %>% 
+    anti_join(my_stop_words)
+
+  #joining sentiments with non-stop words from tweets
+  fn_sentiment <- tweet_words %>% 
+    left_join(sent_full) 
+  
+  #creating df with n of sentiments
+  df <- fn_sentiment %>% 
+    filter(!is.na(sentiment)) %>% 
+    group_by(sentiment) %>% 
+    summarise(n=n())
+
+  #making df of sentiments for each person
+  df_2 <- df %>%
+  mutate(player = names[i]) %>%
+  spread(key = sentiment, value = n)
+  
+  datalist[[i]] <- df_2
+  
+  
+  
+  ######uncomment next part if you want words df or sentiments dfs to be loaded into environment
+  
+  
+  
+  #creating name for dfs
+  #df_name <- name
+  
+  #words_name <- paste(name, "word", sep = "_")
+
+  #assigning df_name to df
+  #assign(df_name, df_2)
+  
+}
+
+#sentiments n for all players
+sentiments_full_bing = do.call(rbind, datalist)
+```
+
+
+#Joining with starter data
+```{r}
+sentiments_full_bing2 <- sentiments_full_bing %>%
+  mutate(player = as.character(player))
+
+#creating percentages
+subset_sentiment <- subset2 %>%
+  left_join(sentiments_full_bing2, by = c("name_clean" = "player")) %>%
+  mutate(totalsentiment = positive+negative,
+         neg_perc = negative/totalsentiment * 100,
+         pos_perc = positive/totalsentiment *100)
+
+
+#gathering by race, player, and sentiment
+subset_sent_format <- subset_sentiment %>%
+  select(name_clean, Race, 19:20) %>%
+  gather(sentiment, n, 3:4)
+
+#grouping by sentiment and race then making mean for each sentiment/race
+subset_sent_2 <- subset_sent_format %>%
+  dplyr::group_by(sentiment, Race) %>%
+  summarise(mean_perc_sent = mean(n))
+
+#sentiments by race
+ggplot(subset_sent_2, aes(x = sentiment, y = mean_perc_sent, fill = Race)) +
+  geom_bar(stat = "identity", position = "dodge", color = "black") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_fill_manual(values=c("black", "white"))
+```
+
+#adding in position
+```{r}
+qb <- c("alex smith", "jameis winston", "joe flacco", "carson wentz", "cam newton", 
+        "dak prescott", "russell wilson", "andy dalton")
+
+#adding in position
+subset_sentiment <- subset_sentiment %>%
+  mutate(position = ifelse(name_clean %in% qb, "qb", "r"))
+
+#gathering by race, player and sentiment
+subset_sent_format <- subset_sentiment %>%
+  select(name_clean, Race, position, 19:20) %>%
+  gather(sentiment, n, 4:5)
+
+#grouping by sentiment and race then making mean for each sentiment/race
+subset_sent_2 <- subset_sent_format %>%
+  dplyr::group_by(sentiment, Race, position) %>%
+  summarise(mean_perc_sent = mean(n))
+
+#same viz but by position as well
+ggplot(subset_sent_2, aes(x = sentiment, y = mean_perc_sent, fill = Race)) +
+  geom_bar(stat = "identity", position = "dodge", color = "black") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_fill_manual(values=c("black", "white")) + facet_wrap(~position, ncol = 1)
+```
+
+#Need to rerun sentiments depending on time -- writing function
+```{r}
+sent <- function(t){
+  
+names <- as.list(subset2$name_clean)
+
+datalist = list()
+
+for(i in 1:24) {
+  
+  
+  #filter for each person and the correct time
+  tweets <- tweets_final %>%
+    filter(name_clean_final == names[i],
+           time == paste0("t_", t))
+  
+  #pick out words
+  words <- tweets %>% 
+    select(ID, full_text_low) %>% 
+    unnest_tokens(word,full_text_low)
+  
+  #creating df of stop words  
+  my_stop_words <- stop_words %>% 
+    select(-lexicon) %>% 
+    bind_rows(data.frame(word = c("https", "t.co", "rt", "amp","4yig9gzh5t","fyy2ceydhi","78","fakenews")))
+
+  #anti-join with stop words to filter those words out
+  tweet_words <- words %>% 
+    anti_join(my_stop_words)
+
+  #joining sentiments with non-stop words from tweets
+  fn_sentiment <- tweet_words %>% 
+    left_join(sent_full) 
+  
+  #creating df with n of sentiments
+  df <- fn_sentiment %>% 
+    filter(!is.na(sentiment)) %>% 
+    group_by(sentiment) %>% 
+    summarise(n=n())
+
+  #making df of sentiments for each person
+  df_2 <- df %>%
+  mutate(player = names[i]) %>%
+  spread(key = sentiment, value = n)
+  
+  datalist[[i]] <- df_2
+  
+  
+  
+  ######uncomment next part if you want words df or sentiments dfs to be loaded into environment
+  
+  
+  
+  #creating name for dfs
+  #df_name <- name
+  
+  #words_name <- paste(name, "word", sep = "_")
+
+  #assigning df_name to df
+  #assign(df_name, df_2)
+  
+}
+  
+#return(datalist)
+
+
+sentiment_full <- do.call(bind_rows, datalist)
+
+sentiment_full <- sentiment_full %>%
+  mutate(totalsentiment = negative + positive,
+         neg_perc = negative/totalsentiment * 100,
+         pos_perc = positive/totalsentiment *100,
+         time = paste0("t_", t),
+         player = as.character(player)) %>%
+  plyr::rename(c("negative" = paste0("negative", t),
+         "positive" = paste0("positive", t),
+         "totalsentiment" = paste0("totalsentiment", t),
+         "neg_perc" = paste0("neg_perc", t),
+         "pos_perc" = paste0("pos_perc", t)))
+  
+
+return(sentiment_full)
+
+}
+```
+
+
+#running the function to get sentiments for all the times
+```{r}
+#sentiments for time 1
+sent_1 <- sent(1)
+
+#sentiment for time 2
+sent_2 <- sent(2)
+
+#sentiment for time 3
+sent_3 <- sent(3)
+
+#sentiment for time 4
+sent_4 <- sent(4)
+
+#sentiment for time 5
+sent_5 <- sent(5)
+
+#combining outcome to players
+outcomes_players <- subset2 %>%
+  full_join(outcomes, by = "Team")
+
+#joining all the sentiments to the subset 
+subset_full <- subset2 %>%
+  left_join(sent_1, by = c("name_clean" = "player")) %>%
+  left_join(sent_2, by = c("name_clean" = "player")) %>%
+  left_join(sent_3, by = c("name_clean" = "player")) %>%
+  left_join(sent_4, by = c("name_clean" = "player")) %>%
+  left_join(sent_5, by = c("name_clean" = "player"))
+
+#(above is long dataset)
+```
+
+#new function to create tall dataset
+```{r}
+sent_tall <- function(t){
+  
+names <- as.list(subset2$name_clean)
+
+datalist = list()
+
+for(i in 1:24) {
+  
+  
+  #filter for each person and the correct time
+  tweets <- tweets_final %>%
+    filter(name_clean_final == names[i],
+           time == paste0("t_", t))
+  
+  #pick out words
+  words <- tweets %>% 
+    select(ID, full_text_low) %>% 
+    unnest_tokens(word,full_text_low)
+  
+  #creating df of stop words  
+  my_stop_words <- stop_words %>% 
+    select(-lexicon) %>% 
+    bind_rows(data.frame(word = c("https", "t.co", "rt", "amp","4yig9gzh5t","fyy2ceydhi","78","fakenews")))
+
+  #anti-join with stop words to filter those words out
+  tweet_words <- words %>% 
+    anti_join(my_stop_words)
+
+  #joining sentiments with non-stop words from tweets
+  fn_sentiment <- tweet_words %>% 
+    left_join(sent_full) 
+  
+  #creating df with n of sentiments
+  df <- fn_sentiment %>% 
+    filter(!is.na(sentiment)) %>% 
+    group_by(sentiment) %>% 
+    summarise(n=n())
+
+  #making df of sentiments for each person
+  df_2 <- df %>%
+  mutate(player = names[i]) %>%
+  spread(key = sentiment, value = n)
+  
+  datalist[[i]] <- df_2
+  
+  
+  
+  ######uncomment next part if you want words df or sentiments dfs to be loaded into environment
+  
+  
+  
+  #creating name for dfs
+  #df_name <- name
+  
+  #words_name <- paste(name, "word", sep = "_")
+
+  #assigning df_name to df
+  #assign(df_name, df_2)
+  
+}
+  
+#return(datalist)
+
+
+sentiment_full <- do.call(bind_rows, datalist)
+
+sentiment_full <- sentiment_full %>%
+  mutate(totalsentiment = negative + positive,
+         neg_perc = negative/totalsentiment * 100,
+         pos_perc = positive/totalsentiment *100,
+         time = paste0("t_", t),
+         player = as.character(player))
+  # plyr::rename(c("negative" = paste0("negative", t),
+  #        "positive" = paste0("positive", t),
+  #        "totalsentiment" = paste0("totalsentiment", t),
+  #        "neg_perc" = paste0("neg_perc", t),
+  #        "pos_perc" = paste0("pos_perc", t)))
+  
+
+return(sentiment_full)
+
+}
+```
+
+#running new function then creating tall dataset
+```{r}
+#sentiments for time 1
+sent_tall_1 <- sent_tall(1)
+
+#sentiment for time 2
+sent_tall_2 <- sent_tall(2)
+
+#sentiment for time 3
+sent_tall_3 <- sent_tall(3)
+
+#sentiment for time 4
+sent_tall_4 <- sent_tall(4)
+
+#sentiment for time 5
+sent_tall_5 <- sent_tall(5)
+
+#combining outcome to players
+outcomes_players <- subset2 %>%
+  full_join(outcomes, by = "Team")
+
+
+
+#row_binding all of the sentiments together
+
+sent_tall_full <- sent_tall_1 %>%
+  bind_rows(sent_tall_2, sent_tall_3, sent_tall_4, sent_tall_5)
+
+
+
+#joining sentiment tall to outcomes
+sent_tall_full1 <- outcomes_players %>%
+  left_join(sent_tall_full, by = c("name_clean" = "player", "time"))
+```
+
+#Yay! Now I can use outcome
+```{r}
+
+sent_tall_full1$outcome1 <- factor(sent_tall_full1$outcome, labels = c("Lost", "Won"))
+
+#gathering by race, player and sentiment
+subset_sent_format <- sent_tall_full1 %>%
+  select(name_clean, Race, outcome1, 21:22) %>%
+  gather(sentiment, n, 4:5)
+
+#grouping by sentiment and race then making mean for each sentiment/race
+subset_sent_2 <- subset_sent_format %>%
+  dplyr::group_by(sentiment, Race, outcome1) %>%
+  summarise(mean_perc_sent = mean(n, na.rm = T))
+
+subset_sent_2 <- subset_sent_2 %>%
+  filter(sentiment == "neg_perc")
+
+#same viz but by outcome as well
+ggplot(subset_sent_2, aes(x = sentiment, y = mean_perc_sent, fill = Race)) +
+  geom_bar(stat = "identity", position = "dodge", color = "black") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_fill_manual(values=c("black", "white")) + facet_wrap(~outcome1) +
+  theme_bw() +
+  theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank()) +
+  xlab("Percentage of Negative Words") +
+  ylab("Average Percentage of Total Sentiment") +
+  geom_text(
+    aes(label = round(mean_perc_sent, digits = 2), y = mean_perc_sent + 1),
+    position = position_dodge(0.9),
+    vjust = 0
+  )
+```
+
+
+#outcome and position
+```{r}
+qb <- c("alex smith", "jameis winston", "joe flacco", "carson wentz", "cam newton", 
+        "dak prescott", "russell wilson", "andy dalton")
+
+sent_tall_full1$outcome1 <- factor(sent_tall_full1$outcome, labels = c("Lost", "Won"))
+
+#adding in position
+sent_tall_full1 <- sent_tall_full1 %>%
+  mutate(position = ifelse(name_clean %in% qb, "Quarterback", "Receiver"))
+
+#gathering by race, player and sentiment
+subset_sent_format <- sent_tall_full1 %>%
+  select(name_clean, Race, outcome1, position, 21:22) %>%
+  gather(sentiment, n, 5:6)
+
+#grouping by sentiment and race then making mean for each sentiment/race
+subset_sent_2 <- subset_sent_format %>%
+  dplyr::group_by(sentiment, Race, outcome1, position) %>%
+  summarise(mean_perc_sent = mean(n, na.rm = T))
+
+#getting rid of positive perc
+subset_sent_2 <- subset_sent_2 %>%
+  filter(sentiment == "neg_perc")
+
+#same viz but by outcome as well
+ggplot(subset_sent_2, aes(x = sentiment, y = mean_perc_sent, fill = Race)) +
+  geom_bar(stat = "identity", position = "dodge", color = "black") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_fill_manual(values=c("black", "white")) + facet_grid(position ~ outcome1) +
+  theme_bw() +
+  theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank()) +
+  xlab("Percentage of Negative Words") +
+  ylab("Average Percentage of Total Sentiment") +
+  geom_text(
+    aes(label = round(mean_perc_sent, digits = 2), y = mean_perc_sent + 1),
+    position = position_dodge(0.9),
+    vjust = 0
+  )
+```
+
+
