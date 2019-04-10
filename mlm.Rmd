@@ -1,0 +1,384 @@
+---
+title: "MLM1"
+author: "Julianna Alvord"
+date: "3/24/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(mosaic)
+library(dplyr)
+library(nlme)
+library(lme4)
+library(lavaan)
+library(semPlot)
+library(stats)
+library(visreg)
+library(nflscrapR)
+library(multilevel)
+```
+
+#reading in data
+```{r}
+model_data <- read.csv("/Users/juliannaalvord/Documents/nfl sentiment/final_data/use_for_model1.csv", stringsAsFactors = F)
+
+subset2 <- read.csv("/Users/juliannaalvord/Documents/nfl sentiment/final_data/subset2.csv", stringsAsFactors = FALSE)
+```
+
+#adding positive to the model
+```{r}
+qb <- c("alex smith", "jameis winston", "joe flacco", "carson wentz", "cam newton", 
+        "dak prescott", "russell wilson", "andy dalton")
+
+#adding in position
+model_data <- model_data %>%
+  mutate(position = ifelse(name_clean %in% qb, "qb", "r"))
+```
+evaluating significance in linear mixed-effect models in R
+
+
+
+#adding in game level data (full_yards)
+
+```{r}
+teams <- model_data %>%
+  group_by(Team) %>%
+  summarise(n = n())
+
+teams <- c("CIN", "DAL", "SEA", "CAR", "TB", "PHI", "KC", "BAL")
+
+week1_to_6 <- scrape_game_ids(2017, weeks = c(1, 2, 3, 4, 5, 6))
+
+#Filtering for correct teams
+week1_to_6_filt <- week1_to_6 %>%
+  filter(home_team %in% teams | away_team %in% teams)
+
+#weeks 1-5
+week_1_teams <- c("SEA", "DAL", "CIN")
+#weeks 2-6
+week_6 <- c("CAR", "TB", "PHI", "KC", "BAL")
+
+week6name <- c("Carolina Panthers", "Tampa Bay Buccaneers", "Philadelphia Eagles", "Kansas City Chiefs", "Baltimore Ravens")
+
+#week1
+week1 <- week1_to_6_filt %>%
+  filter(week == 1, (home_team %in% week_1|away_team %in% week_1))
+  
+#week2
+week2 <- week1_to_6_filt %>%
+  filter(week == 2)
+
+#week3
+week3 <- week1_to_6_filt %>%
+  filter(week == 3)
+
+#week4
+week4 <- week1_to_6_filt %>%
+  filter(week == 4)
+
+#week5
+week5 <- week1_to_6_filt %>%
+  filter(week == 5)
+
+#week6
+week6 <- week1_to_6_filt %>%
+  filter(week == 6, (home_team %in% week_6|away_team %in% week_6))
+
+#filtering full for what I need
+
+#week1_gameid <- week1$game_id
+
+
+
+
+#week1 players last names
+subset2 <- subset2 %>%
+  separate(Name, c("first", "last"), " ") %>%
+  mutate(first_init = substr(first, 1, 1),
+         last = ifelse(last == "Jeffrey", "Jeffery", last),
+         name_2 = paste(first_init, last, sep = "."))
+
+week_1_teams <- c("Seattle Seahawks", "Dallas Cowboys", "Cincinnati Bengals")
+
+subset2_name_week1 <- subset2 %>%
+  filter(Team %in% week_1_teams)
+
+names_week1 <- subset2_name_week1$last
+
+
+#week 1 stats
+
+week1 <- as.list(week1$game_id)
+
+stats <- list()
+
+for (i in 1:3) {
+  
+  df <- player_game(week1[i])
+  
+  stats[[i]] <- df
+  
+}
+
+week1_stats <- do.call(bind_rows, stats)
+
+all_name1 <- paste(names_week1, collapse='|')
+
+week1_stats <- week1_stats %>%
+  mutate(match = ifelse(grepl(all_name1, name), 1, 0)) %>%
+  filter(match == 1, !name == "D.Wilson") %>%
+  select(name, Team, passyds, rushyds, recyds) %>%
+  mutate(full_yards = passyds+ rushyds+ recyds,
+         time = "t_1") %>%
+  select(name, Team, full_yards, time)
+
+###week 2
+week2 <- as.list(week2$game_id)
+
+stats <- list()
+
+for (i in 1:7) {
+  
+  df <- player_game(week2[i])
+  
+  stats[[i]] <- df
+  
+}
+
+week2_stats <- do.call(bind_rows, stats)
+
+names_week2 <- subset2$name_2
+
+all_name2 <- paste(names_week2, collapse='|')
+
+week2_stats <- week2_stats %>%
+  mutate(match = ifelse(grepl(all_name2, name), 1, 0)) %>%
+  filter(match == 1, !(name == "R.Wilson" & Team == "KC")) %>%
+  select(name, Team,  passyds, rushyds, recyds) %>%
+  mutate(full_yards = passyds+ rushyds+ recyds,
+         time = ifelse(Team %in% week_1, "t_2", "t_1")) %>%
+  select(name, Team, full_yards, time)
+
+
+#week 3
+week3 <- as.list(week3$game_id)
+
+stats <- list()
+
+for (i in 1:8) {
+  
+  df <- player_game(week3[i])
+  
+  stats[[i]] <- df
+  
+}
+
+week3_stats <- do.call(bind_rows, stats)
+
+names_week3 <- subset2$name_2
+
+all_name3 <- paste(names_week3, collapse='|')
+
+week3_stats <- week3_stats %>%
+  mutate(match = ifelse(grepl(all_name3, name), 1, 0)) %>%
+  filter(match == 1, !(name == "R.Wilson" & Team == "KC"), !(name == "M.Evans" & Team == "GB")) %>%
+  select(name, Team,  passyds, rushyds, recyds) %>%
+  mutate(full_yards = passyds+ rushyds+ recyds,
+         time = ifelse(Team %in% week_1, "t_3", "t_2")) %>%
+  select(name, Team, full_yards, time)
+
+
+
+#week 4
+week4 <- as.list(week4$game_id)
+
+stats <- list()
+
+for (i in 1:8) {
+  
+  df <- player_game(week4[i])
+  
+  stats[[i]] <- df
+  
+}
+
+week4_stats <- do.call(bind_rows, stats)
+
+names_week4 <- subset2$name_2
+
+all_name4 <- paste(names_week4, collapse='|')
+
+week4_stats <- week4_stats %>%
+  mutate(match = ifelse(grepl(all_name4, name), 1, 0)) %>%
+  filter(match == 1, !(name == "R.Wilson" & Team == "KC"), !(name == "M.Evans" & Team == "GB"), !(name == "T.Hill" & Team == "LA")) %>%
+  select(name, Team,  passyds, rushyds, recyds) %>%
+  mutate(full_yards = passyds+ rushyds+ recyds,
+         time = ifelse(Team %in% week_1, "t_4", "t_3")) %>%
+  select(name, Team, full_yards, time)
+
+
+
+#week 5
+week5 <- as.list(week5$game_id)
+
+stats <- list()
+
+for (i in 1:8) {
+  
+  df <- player_game(week5[i])
+  
+  stats[[i]] <- df
+  
+}
+
+week5_stats <- do.call(bind_rows, stats)
+
+names_week5 <- subset2$name_2
+
+all_name5 <- paste(names_week5, collapse='|')
+
+week5_stats <- week5_stats %>%
+  mutate(match = ifelse(grepl(all_name5, name), 1, 0)) %>%
+  filter(match == 1, !(name == "R.Wilson" & Team == "KC"), !(name == "M.Evans" & Team == "GB"), !(name == "T.Hill" & Team == "LA")) %>%
+  select(name, Team,  passyds, rushyds, recyds) %>%
+  mutate(full_yards = passyds+ rushyds+ recyds,
+         time = ifelse(Team %in% week_1, "t_5", "t_4")) %>%
+  select(name, Team, full_yards, time)
+
+
+
+#week 6
+week6 <- as.list(week6$game_id)
+
+stats <- list()
+
+for (i in 1:4) {
+  
+  df <- player_game(week6[i])
+  
+  stats[[i]] <- df
+  
+}
+
+week6_stats <- do.call(bind_rows, stats)
+
+week6teams <- c("Carolina Panthers", "Tampa Bay Buccaneers", "Philadelphia Eagles", "Kansas City Chiefs", "Baltimore Ravens")
+
+week6name <- subset2 %>%
+  filter(Team %in% week6teams)
+
+names_week6 <- week6name$name_2
+
+all_name6 <- paste(names_week6, collapse='|')
+
+week6_stats <- week6_stats %>%
+  mutate(match = ifelse(grepl(all_name6, name), 1, 0)) %>%
+  filter(match == 1, !(name == "R.Wilson" & Team == "KC"), !(name == "M.Evans" & Team == "GB"), !(name == "T.Hill" & Team == "LA")) %>%
+  select(name, Team,  passyds, rushyds, recyds) %>%
+  mutate(full_yards = passyds+ rushyds+ recyds,
+         time = "t_5") %>%
+  select(name, Team, full_yards, time)
+
+full_stats <- week1_stats %>%
+  bind_rows(week2_stats, week3_stats, week4_stats, week5_stats, week6_stats)
+
+write.csv(full_stats, "/Users/juliannaalvord/Documents/nfl sentiment/final_data/full_stats.csv")
+```
+
+
+
+#MLM 
+```{r}
+#separating first and last to join with player stats data
+model_data <- model_data %>%
+  separate(Name, c("first", "last"), " ") %>%
+  mutate(first_init = substr(first, 1, 1),
+         last = ifelse(last == "Jeffrey", "Jeffery", last),
+         name_2 = paste(first_init, last, sep = ".")) %>%
+  left_join(full_stats, by = c("name_2" = "name", "time" = "time"))
+
+#filtering missing sentiments
+data2 <- model_data %>%
+  filter(!is.na(neg_perc)) %>%
+  mutate(win_bin = ifelse(outcome == "W", 1, 0),
+         lose_bin = ifelse(outcome == "L", 1, 0),
+         black_bin = ifelse(Race == "B", 1, 0))
+
+
+data2 <- data2 %>%
+  mutate(yards_fixed = ifelse(position == "qb", full_yards/3, full_yards))
+
+#running model 1 using lme
+model3 <- lme(neg_perc ~ outcome * Race + position + yards_fixed,
+               random = ~ 1 | Team.x/name_2, data = data2)
+
+summary(model3)
+
+
+#box plot of neg perc by race and outcome
+ggplot(data2, aes(Race, neg_perc)) +
+  geom_boxplot() + facet_wrap(~outcome) +
+  theme_classic() +
+  ylab("% of Negative Words")
+
+#line graph with multiple slopes
+ggplot(data2, aes(yards_fixed, neg_perc)) +
+  geom_point() +
+  geom_smooth(method = lm, aes(color = name_2), se = FALSE) +
+  theme_classic()+
+  theme(legend.title = element_blank()) +
+  xlab("Total Yards Standardized") +
+  ylab("% of Negative Words")
+
+
+#different model (not working)
+model <- lmer(neg_perc ~ outcome * Race + position + yards_fixed
+              + (1|name_2) + (1|Team.x),
+              data = data2,
+              na.action = na.omit)
+
+summary(model)
+
+#histogram of my response variable
+ggplot(model_data, aes(neg_perc)) + 
+  geom_histogram(bins = 10)
+#fairly normally distributed
+```
+
+#linear regression as baseline
+```{r}
+model_lm <- lm(neg_perc ~ outcome * Race + position + yards_fixed, data = data2)
+
+summary(model_lm)
+```
+
+
+
+
+
+
+#modeling
+```{r}
+ggplot(data2, aes(neg_perc)) + geom_histogram()
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
