@@ -16,14 +16,14 @@ library(tidyr)
 
 ```{r}
 #loading first half of tweets
-load("/Users/juliannaalvord/Documents/nfl sentiment/sb_tweets_half1.rda")
+load("/Users/juliannaalvord/Documents/nfl sentiment/sb analysis/sb_tweets_half1.rda")
 
 #changing name
-half1 <- rt
+half1 <-rt
 rm(rt)
 
 #loading second half of tweets
-load("/Users/juliannaalvord/Documents/nfl sentiment/sb_tweets_half2.rda")
+load("/Users/juliannaalvord/Documents/nfl sentiment/sb analysis/sb_tweets_half2.rda")
 
 #changing name
 half2 <- rt2
