@@ -1,6 +1,6 @@
 ---
 author: 'Julianna Alvord'
-date: 'May 20xx'
+date: 'May 13, 2019'
 institution: 'Smith College'
 #division: 'Mathematics and Natural Sciences'
 advisor: 'Ben Baumer'
