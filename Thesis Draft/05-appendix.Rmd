@@ -9,16 +9,272 @@ If you feel it necessary to include an appendix, it goes here.
 
 # The First Appendix
 
-This first appendix includes all of the R chunks of code that were hidden throughout the document (using the `include = FALSE` chunk tag) to help with readibility and/or setup.
+###Python function to gather tweets mentioning names
+```{r, eval = FALSE}
+def get_tweets_name(data, start, end):
+    
+    #getting the twitter handles
+    twitter = data.Name.tolist()
 
-**In the main Rmd file**
+    newtwitter = []
 
-```{r ref.label='include_packages', results='hide', echo = TRUE}
+    for i in range(len(twitter)):
+        a = twitter[i].replace("'", "")
+    
+        newtwitter.append(a)
+    
+    print(newtwitter)
+    
+    
+    
+    #getting start date
+    
+    start = data[start]
+    
+    start = start.tolist()
+
+    start = start[0].replace("'", "")
+    
+    print(start)
+    
+    
+    #getting end date
+    
+    end = data[end]
+    
+    end = end.tolist()
+
+    end = end[0].replace("'", "")
+    
+    print(end)
+    
+    
+    
+    #running loop for tweets
+    
+    all_tweets = []
+
+    #some_tweets = []
+
+    #for i in range(4):
+
+    for handle in newtwitter:
+
+        rule = gen_rule_payload(handle + " -is:retweet",
+                                from_date = start,
+                                to_date = end,
+                                results_per_call = 500)
+            
+        rs = ResultStream(rule_payload=rule,
+                          max_results=2000,
+                          max_pages=4,
+                          **premium_search_args)
+
+        tweets2 = list(rs.stream())
+
+        [print(tweet.all_text) for tweet in tweets2[0:10]];
+        
+        all_tweets.extend(tweets2)
+        
+        time.sleep(10)
+        
+    #all_tweets.extend(some_tweets)
+        
+        
+        
+    #creating df    
+    
+    
+    
+    # We create a pandas dataframe as follows:
+    data_tweets = pd.DataFrame(data=[tweet.text for tweet in all_tweets], columns=['Tweets'])
+    
+    #adding more columns
+    data_tweets['len']  = np.array([len(tweet.text) for tweet in all_tweets])
+    data_tweets['ID']   = np.array([tweet.id for tweet in all_tweets])
+    data_tweets['Date'] = np.array([tweet.created_at_datetime for tweet in all_tweets])
+    data_tweets['Likes']  = np.array([tweet.favorite_count for tweet in all_tweets])
+    data_tweets['RTs']    = np.array([tweet.retweet_count for tweet in all_tweets])
+    data_tweets['Quoted'] = np.array([tweet.quoted_tweet for tweet in all_tweets])
+    data_tweets['Q_or_RT'] = np.array([tweet.quote_or_rt_text for tweet in all_tweets])
+    data_tweets['User_ent_text'] = np.array([tweet.user_entered_text for tweet in all_tweets])
+    data_tweets['retweeted_tweet'] = np.array([tweet.retweeted_tweet for tweet in all_tweets])
+    data_tweets['user_mentions'] = np.array([tweet.user_mentions for tweet in all_tweets])
+    data_tweets['profile_location'] = np.array([tweet.profile_location for tweet in all_tweets])
+    data_tweets['in_reply_to_screen_name'] = np.array([tweet.in_reply_to_screen_name for tweet in all_tweets])
+    data_tweets['created_at_string'] = np.array([tweet.created_at_string for tweet in all_tweets])
+    data_tweets['tweet_type'] = np.array([tweet.tweet_type for tweet in all_tweets])
+    data_tweets['retweeted_tweet'] = np.array([tweet.retweeted_tweet for tweet in all_tweets])
+    data_tweets['all_text'] = np.array([tweet.all_text for tweet in all_tweets])
+    
+    
+    return data_tweets
 ```
 
-**In Chapter \@ref(ref-labels):**
 
-```{r ref.label='include_packages_2', results='hide', echo = TRUE}
+###Python function to gather tweets mentioning handles
+```{r, eval = FALSE}
+def get_tweets_handle(data, start, end):
+    
+    #getting the twitter handles
+    twitter = data.Twitter_handle.tolist()
+
+    newtwitter = []
+
+    for i in range(len(twitter)):
+        a = twitter[i].replace("'", "")
+    
+        newtwitter.append(a)
+    
+    print(newtwitter)
+    
+    
+    
+    #getting start date
+    
+    start = data[start]
+    
+    start = start.tolist()
+
+    start = start[0].replace("'", "")
+    
+    print(start)
+    
+    
+    #getting end date
+    
+    end = data[end]
+    
+    end = end.tolist()
+
+    end = end[0].replace("'", "")
+    
+    print(end)
+    
+    
+    
+    #running loop for tweets
+    
+    all_tweets = []
+
+    #some_tweets = []
+
+    #for i in range(4):
+
+    for handle in newtwitter:
+
+        rule = gen_rule_payload(handle + " -is:retweet",
+                                from_date = start,
+                                to_date = end,
+                                results_per_call = 500)
+            
+        rs = ResultStream(rule_payload=rule,
+                          max_results=2000,
+                          max_pages=4,
+                          **premium_search_args)
+
+        tweets2 = list(rs.stream())
+
+        [print(tweet.all_text) for tweet in tweets2[0:10]];
+        
+        all_tweets.extend(tweets2)
+        
+        time.sleep(10)
+        
+    #all_tweets.extend(some_tweets)
+        
+        
+        
+    #creating df    
+    
+    
+    
+    # We create a pandas dataframe as follows:
+    data_tweets = pd.DataFrame(data=[tweet.text for tweet in all_tweets], columns=['Tweets'])
+    
+    #adding more columns
+    data_tweets['len']  = np.array([len(tweet.text) for tweet in all_tweets])
+    data_tweets['ID']   = np.array([tweet.id for tweet in all_tweets])
+    data_tweets['Date'] = np.array([tweet.created_at_datetime for tweet in all_tweets])
+    data_tweets['Likes']  = np.array([tweet.favorite_count for tweet in all_tweets])
+    data_tweets['RTs']    = np.array([tweet.retweet_count for tweet in all_tweets])
+    data_tweets['Quoted'] = np.array([tweet.quoted_tweet for tweet in all_tweets])
+    data_tweets['Q_or_RT'] = np.array([tweet.quote_or_rt_text for tweet in all_tweets])
+    data_tweets['User_ent_text'] = np.array([tweet.user_entered_text for tweet in all_tweets])
+    data_tweets['retweeted_tweet'] = np.array([tweet.retweeted_tweet for tweet in all_tweets])
+    data_tweets['user_mentions'] = np.array([tweet.user_mentions for tweet in all_tweets])
+    data_tweets['profile_location'] = np.array([tweet.profile_location for tweet in all_tweets])
+    data_tweets['in_reply_to_screen_name'] = np.array([tweet.in_reply_to_screen_name for tweet in all_tweets])
+    data_tweets['created_at_string'] = np.array([tweet.created_at_string for tweet in all_tweets])
+    data_tweets['tweet_type'] = np.array([tweet.tweet_type for tweet in all_tweets])
+    data_tweets['retweeted_tweet'] = np.array([tweet.retweeted_tweet for tweet in all_tweets])
+    data_tweets['all_text'] = np.array([tweet.all_text for tweet in all_tweets])
+    
+    
+    return data_tweets
 ```
 
-# The Second Appendix, for Fun
+###Function in R to determine sentiment for each time point
+```{r, eval = FALSE}
+sent_tall <- function(t){
+  
+names <- as.list(subset2$name_clean)
+
+datalist = list()
+
+for(i in 1:24) {
+  
+  
+  #filter for each person and the correct time
+  tweets <- tweets_final %>%
+    filter(name_clean_final == names[i],
+           time == paste0("t_", t))
+  
+  #pick out words
+  words <- tweets %>% 
+    select(ID, full_text_low) %>% 
+    unnest_tokens(word,full_text_low)
+  
+  #creating df of stop words  
+  my_stop_words <- stop_words %>% 
+    select(-lexicon) %>% 
+    bind_rows(data.frame(word = c("https", "t.co", "rt", "amp","4yig9gzh5t","fyy2ceydhi","78","fakenews")))
+
+  #anti-join with stop words to filter those words out
+  tweet_words <- words %>% 
+    anti_join(my_stop_words)
+
+  #joining sentiments with non-stop words from tweets
+  fn_sentiment <- tweet_words %>% 
+    left_join(sent_full) 
+  
+  #creating df with n of sentiments
+  df <- fn_sentiment %>% 
+    filter(!is.na(sentiment)) %>% 
+    group_by(sentiment) %>% 
+    summarise(n=n())
+
+  #making df of sentiments for each person
+  df_2 <- df %>%
+  mutate(player = names[i]) %>%
+  spread(key = sentiment, value = n)
+  
+  datalist[[i]] <- df_2
+  
+}
+
+sentiment_full <- do.call(bind_rows, datalist)
+
+sentiment_full <- sentiment_full %>%
+  mutate(totalsentiment = negative + positive,
+         neg_perc = negative/totalsentiment * 100,
+         pos_perc = positive/totalsentiment *100,
+         time = paste0("t_", t),
+         player = as.character(player))
+  
+
+return(sentiment_full)
+
+}
+```
+
