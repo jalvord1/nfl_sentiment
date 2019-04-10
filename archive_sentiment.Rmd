@@ -407,7 +407,6 @@ sent_tall_full1 <- outcomes_players %>%
 
 #Yay! Now I can use outcome
 ```{r}
-
 sent_tall_full1$outcome1 <- factor(sent_tall_full1$outcome, labels = c("Lost", "Won"))
 
 #gathering by race, player and sentiment
@@ -483,4 +482,8 @@ ggplot(subset_sent_2, aes(x = sentiment, y = mean_perc_sent, fill = Race)) +
   )
 ```
 
+#writing out csv
+```{r}
+write.csv(sent_tall_full1, "/Users/juliannaalvord/Documents/nfl sentiment/final_data/use_for_model1.csv", row.names = F)
+```
 

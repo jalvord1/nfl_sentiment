@@ -31,6 +31,7 @@ files = list.files(path = "/Users/juliannaalvord/Documents/nfl sentiment/final_d
 
 path = "/Users/juliannaalvord/Documents/nfl sentiment/final_data/"
 
+
 for (i in 1:length(files)) {
   
   assign(paste("t", i, sep = "_"), read.csv(paste(path, files[i], sep = "")))
