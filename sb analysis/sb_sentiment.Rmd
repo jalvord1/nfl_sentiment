@@ -319,8 +319,6 @@ starters_sentiment2 <- starters2 %>%
          neg_perc = negative/totalsentiment * 100,
          pos_perc = positive/totalsentiment *100)
 
-
-
 #gathering by race, player, and sentiment
 starters_sent_format <- starters_sentiment2 %>%
   select(name_clean, Race, 11:12) %>%
