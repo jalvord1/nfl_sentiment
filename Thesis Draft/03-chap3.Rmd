@@ -12,6 +12,8 @@ library(stringr)
 library(tidytext)
 library(scales)
 library(kableExtra)
+library(here)
+library(purrr)
 ```
 
 #Study 1
@@ -22,56 +24,58 @@ The goal of this initial study was to explore tweet data aimed at football playe
 
 Twitter offers many methods for accessing its data. A few examples include a premium search of the full archive, a standard search, and a filter of real-time tweets. Each of these has specific limits, some more stringent than others. However, the method that allows for the largest amount of tweets is the real-time filtering method. Here, a query and time period are specified and a subset of tweets that match the query are gathered for the length of the time period. 
 
-The event that was used for this aspect of the project was Superbowl LIII. We believed that this event would offer an abundance of data, given the amounts of data amassed during previous Super Bowls. Last year, over 100 million people watched the Super Bowl [@superbowl2018] and in 2017, 27.6 million tweets were posted relating to the Super Bowl [@superbowl2017tweets]. 
+We used Super Bowl LIII for this aspect of the project. We believed that this event would offer an abundance of data, given the amount of data amassed during previous Super Bowls. Last year, over 100 million people watched the Super Bowl [@superbowl2018] and in 2017, 27.6 million tweets were posted relating to the Super Bowl [@superbowl2017tweets]. 
 
-We did not begin this project with any specific hypotheses or research questions as it was more exploratory in nature. Our main goals were to determine what the most tweeted words were, how many tweets were posted per player, and what the average sentiments were per player. Unlike in the next study, we were not looking to model the data.
+We did not begin this project with any specific hypotheses or research questions as it was more exploratory in nature. Our main goals were to determine what the most tweeted words were, how many tweets were posted per player, and what the average sentiments were per player. Unlike in the next study, we did not intend to model the data.
 
 ##Methods
 
-### Query
+### Creating a Query
 
-The first step of this study was to determine what our query would be. The standard option for filtering real-time tweets allows for up to 400 keywords, 5,000 user ids, and 25 0.1-360 degree location boxes [@streamingapi]. As our focus was on players, we decided to use the roster of the starting players for each team as the query. The roster was pulled from the CBS Sports website, the network that hosted the game. Their full names were added to a column in a .csv file. Next, in order to increase the data that would be gathered, we decided to add their Twitter handles to the next column. The gathering of player names and Twitter handles was done by hand, and manually entered into the file. 
+The first step of this study was to determine what our query would be. The standard option for filtering real-time tweets allows for up to 400 keywords and 5,000 user ids [@streamingapi]. As our focus was on players, we decided to use the roster of the starting players for each team as the query. The roster was pulled from the CBS Sports website, the network that hosted the game. Their full names were added to a column in a `csv` file. Each team had 25 starting players, for a total of 50 altogether. Next, in order to increase the data that would be gathered, we decided to add each player's Twitter handle to the next column. The gathering of player names and Twitter handles was done by hand, and manually entered into the file. 
 
-Once in R, the name and Twitter handle columns were each made into lists then joined. This list was saved as an object to be used in the function that gathers live tweets. 
+Once in R, the name and Twitter handle columns were each made into lists and then combined. This list was saved as an object to be used in the function that gathers live tweets. 
 
-### rtweet Function
+### Using the rtweet Function
 
-A package in R titled rtweet was designed to give access to Twitter’s Rest and Streaming APIs [@rtweet-package]. To begin using the functions of this package, users must first become authorized by Twitter Inc., a process that can be done online. Once accepted as a developer, one must create an “app”, which in turn, will then create tokens necessary to access the API through functions in the rtweet package. 
+The `rtweet` package in R is designed to give access to Twitter’s Rest and Streaming APIs [@rtweet-package]. To begin using the functions of this package, users must first become an authorized developer by Twitter Inc., a process that can be done online. Once accepted as a developer, one must create an “app”, which in turn, will then create tokens necessary to access the API through functions in the `rtweet` package. 
 
-Once created, a simple function called create_token connects to the app and saves your token to your environment. This means the following code only needs to be run once. 
+Once created, a simple function called `create_token()` connects to the app and saves your token to your environment. This means the following code only needs to be run once. 
 
-```{r, eval = FALSE}
+```{r, eval = FALSE, size = "small"}
 create_token(
   app = "my_twitter_research_app",
   consumer_key = "aaaaaaaa",
   consumer_secret = "bbbbbbbb",
   access_token = "cccccccc",
-  access_secret = "dddddddd")
+  access_secret = "dddddddd"
+  )
 ```
 
-The next step was to decide the length of time that the function would run to collect tweets. Super Bowl LIII began at 6:30pm E.T. and was expected to last approximately four hours. We decided to run the function for seven hours beginning at 5:30. This would allow us to gather the tweets posted leading up to the game as well as those posted following the game. We believed reactionary tweets would be posted both during game play and in the hours following. The following code was used to load the query data, make a list that included full names and Twitter handles, and gather the streaming tweets. 
+The next step is to decide the length of time that the function would run to collect tweets. Super Bowl LIII began at 6:30pm E.T. and was expected to last approximately four hours. We decided to run the function for seven hours beginning at 5:30. This would allow us to gather the tweets posted leading up to the game as well as those posted following the game. We believed reaction tweets would be posted both during game play and in the hours following. The following code was used to load the query data, make a list that included full names and Twitter handles, and gather the streaming tweets. 
 
-```{r, eval = FALSE}
+```{r, eval = FALSE, size = "small"}
 #reading in the data
-starters <- read.csv("path/starters.csv", stringsAsFactors = FALSE)
+starters <- read_csv(here("sb analysis", "sb_starters.csv"))
 
 #pulling out player names
-name <- starters$players
+name <- pull(starters, players)
 
-#cleaning twitter column, selecting that column, then filtering out those without twitter handle
+#cleaning twitter column, selecting that column, then 
+#filtering out those without twitter handle
 twitter_clean <- starters %>%
-  mutate(twitter_clean = sub("'", "", twitter)) %>%
+  mutate(twitter_clean = gsub("'", "", twitter)) %>%
   select(twitter_clean) %>%
   filter(!twitter_clean == "")
 
 #pulling out twitter handles
-twitter <- twitter_clean$twitter_clean
+twitter <- pull(twitter_clean, twitter_clean)
 
 #full name and twitter handle for streaming
 full <- c(name, twitter)
 
 # Stream keywords used to filter tweets
-q <- paste(full, collapse=',' )
+q <- paste(full, collapse = ',')
 
 # stream time is in seconds
 # ( x * 60 * 60 = x hours)
@@ -79,88 +83,94 @@ q <- paste(full, collapse=',' )
 streamtime <- 7 * 60 * 60
 
 ## Filename to save json data (backup)
-filename <- "path/sb_tweets.json"
+filename <- here("sb analysis", "sb_tweets.json")
 
 #save as json for later parsing
-stream_tweets(q = q, timeout = streamtime, file_name = filename, parse = FALSE, language = "en")
+stream_tweets(q = q, timeout = streamtime, 
+              file_name = filename, parse = FALSE, language = "en")
 ```
 
-As you can see from above, the lists of twitter handles and names needed to be formatted as a single string with a comma separating each value that tweets would be matched against. Additionally, the stream time must be in seconds so the numbers of hours chosen, in this case 7, needed to be multiplied by 3,600. Finally, in our stream_tweets function, we included the parameter "parse = FALSE" which saves the tweets as a .json file to my computer instead of loading the file directly to my environment. Later, I parsed this .json file using an additional function within the rtweet package. 
+As shown above, the list of twitter handles and names needed to be formatted as a single string with a comma separating each value that tweets would be matched against. Additionally, the stream time must be in seconds so the numbers of hours chosen, in this case 7, needed to be multiplied by 3,600. Finally, in our `stream_tweets()` function, we included the parameter `parse = FALSE` which saves the tweets as a `json` file to disk instead of loading the file directly to my environment. Later, I parsed this `json` file using an additional function within the rtweet package. A few additional steps were necessary before saving, which can be found at A.0.1 of the data appendix.
 
-```{r, eval=FALSE}
+```{r, eval=FALSE, size = "small"}
 #parsing entire file
 rt <- parse_stream(filename)
 ```
 
-However, after investigation, we realized that about half of the tweets appeared to be missing when the file was parsed. We knew this to be true because the .json file contained about 1.2 million lines and every other line was a tweet, meaning there should have been around 600,000 tweets in the data frame once the file was parsed. However, only about 300,000 tweets appeared. We realized that the file might have been too large to parse at once so we split our file into halves using the terminal then parsed each of those individually. The first half contained 307056 tweets and the second contained 311572, for a total of 618628 tweets. The two data frames each containing half of the tweets were saved as .rda files for easier loading in the future.
-
-```{r, eval=FALSE}
-#first half
-filename2 <- "/Users/juliannaalvord/Documents/nfl sentiment/sb analysis/sb_tweets_half1.json"
-
-#parse those tweets from above
-rt <- parse_stream(filename2)
-
-#second half
-filename3 <- "/Users/juliannaalvord/Documents/nfl sentiment/sb_tweets_half2.json"
-
-#parse tweets from above
-rt2 <- parse_stream(filename3)
-
-#saving these parsed files (each half individually)
-save(rt2, file = "/Users/juliannaalvord/Documents/nfl sentiment/sb_tweets_half1.rda")
-
-save(rt3, file = "/Users/juliannaalvord/Documents/nfl sentiment/sb_tweets_half2.rda")
-```
-
-
 ### Cleaning
 
-Once these files were parsed, the files were loaded into a new file for cleaning. Once here, the function bind_rows from the dplyr package @dplyrpackage was used to stack the two halves and create one tall data frame with 618628 rows and 88 variables. These 88 variables each contain a piece of metadata that is provided by Twitter. Some variables include "user_id", "created_at", and "is_retweet". The next step was to clean the text in order to pull out the names or twitter handles contained in the tweets in order to determine which players the tweet is mentioning.
+Once the file is parsed, it is loaded into a new file for cleaning. Here, the function `bind_rows()` from the `dplyr` package [@dplyrpackage] was used to stack the two halves and create one data frame with 618,628 rows and 88 variables. These 88 variables each contain a piece of metadata that is provided by Twitter. Some variables include `user_id`, `created_at`, and `is_retweet`. The next step is to clean the text in order to pull out the names or twitter handles contained in the tweets in order to determine which players the tweet is mentioning.
 
-Two variables contain text that can be analyzed. One is the column "text", which contains the actual UTF-8 of the status update. However, some tweets in the data were quoted, meaning users added comments to an already published tweet. This text was found in the variable "quoted_text". Using the tolower function from the base package @basepackage, the text from these two columns was translated from a mix of upper and lower case characters to only lower case. Then, using the paste function from the base package, another column was created that combined the text from these two lower case character vectors. Once this column was created, we were able to determine if there were duplicate tweets by using the duplicated function again from the base package. In total, 398,231 tweets contained duplicate text. We believed that the majority of those would have been retweeted tweets. Using the grepl function from the base package, we could determine if the text contained the string "rt", indicating that the tweet may be a retweeted text. However, only 86,016 of the tweets contained this string. We decided to leave the duplicate indicator variable in the data frame but did not make a decision about how to handle them at this stage. Instead, we saved this cleaned data frame as another rda to be used for simple natural language processing and sentiment analyses. 
+---------------------------------------------------------------------------------------
+Number of Tweets    Number of variables   Number of players   Number of Twitter Handles
+----------------    -------------------   -----------------   -------------------------
+     618628                 88                    50                     42
+----------------    -------------------   -----------------   -------------------------
+Table: (\#tab:sumstat) Summary statistics of the Super Bowl tweets analysis
 
-```{r, eval = FALSE}
-#binding rows of the two halves
-full <- half1 %>%
-  bind_rows(half2)
+Two variables contain text that is useful for our analysis. One is `text`, which contains the actual encoded string of the status update. However, some tweets in the data were quoted, meaning users added comments to an already published tweet. This text was found in the variable `quoted_text`. Using the `tolower()` function [@basepackage], I translated the text from these two columns from a mix of upper and lower case characters to only lower case. Then, using the `paste()` function, I created another column that combined the text from these two lower case character vectors. Once this column was created, we were able to determine if there were duplicate tweets by using the `duplicated()` function. 
+
+```{r, warning=FALSE, message=FALSE, size = "small"}
+#loading in df of all tweets
+load(here("sb analysis", "sb_tweets_full.rda"))
 
 #flagging duplicates from text+quoted text
 full <- full %>%
   mutate(text_low = tolower(text),
          quoted_text_low = tolower(quoted_text),
          full_text_low = paste(text_low, quoted_text_low, sep = ","),
-         dup = ifelse(duplicated(full_text_low), 1, 0))
+         dup = duplicated(full_text_low))
 
 #how many dups?
-table(full$dup, useNA = "a")
-
-#how many of the dups have rt at all
-n_dup_rt <- full %>%
-  filter(dup == 1) %>%
-  mutate(rt = ifelse(grepl("rt", full_text_low), 1, 0)) %>%
-  group_by(rt) %>%
-  summarise(n = n())
-
-#how many contain "rt"?
-table(n_dup_rt$rt, n_dup_rt$n)
-
-#saving file as .rda file
-save(full, file = "/Users/juliannaalvord/Documents/nfl sentiment/sb_tweets_full.rda")
+full %>%
+  group_by(dup) %>%
+  summarise(n = n()) %>%
+  kable(caption = "Number of Duplicated Tweets",
+      caption.short = "nduptweets") %>%
+  kable_styling(bootstrap_options = "striped", 
+                latex_options = "hold_position")
 ```
+In total, 398,231 tweets contained duplicate text. We believed that the majority of those would have been retweeted tweets. Using the `grepl()` function, we could determine if the text contained the string `rt`, indicating that the tweet may be a retweeted text.
+
+
+```{r}
+#how many of the dups have rt at all
+full %>%
+  filter(dup == TRUE) %>%
+  mutate(rt = grepl("rt", full_text_low)) %>%
+  group_by(rt) %>%
+  summarise(n = n()) %>%
+  kable(caption = "Number of Duplicated Tweets with 'rt' String",
+      caption.short = "nduptweetsrt") %>%
+  kable_styling(bootstrap_options = "striped", 
+                latex_options = "hold_position")
+```
+Only 86,016 of the tweets contained this string. We decided to leave the duplicate indicator variable in the data frame but did not make a decision about how to handle them at this stage. Instead, we saved this cleaned data frame as another `rda` to be used for simple natural language processing and sentiment analyses.
+
 
 ### Matching Tweets to Players
 
-Now that we had a data set containing all tweets and a cleaned text column, we sought to determine which tweets mentioned which players in order to properly analyze the data. We started by creating the same list of names and twitter handles that was used as the query within our stream_tweets function. However, this time, the list was made into a single string with the vertical bar separating each element. Then, we used the same tolower function as above to change each character to lower case, in order to properly match the cleaned text variable. 
+Now that we have a data set containing all tweets and a cleaned text column, we sought to determine which tweets mentioned which players in order to properly analyze the data. We started by creating the same list of names and twitter handles that was used as the query within our `stream_tweets()` function. However, this time, the list was made into a single string with the vertical bar separating each element. Then, we used the same `tolower()` function as above to change each character to lower case, in order to properly match the cleaned text variable. 
 
-```{r, eval = FALSE}
-#pulling out the names
+```{r, eval = FALSE, size = "small"}
+#making list for str_extract_all function
+all_players <- paste(full_name, collapse='|')
+
+#lower case names and twitter handles
+all_players_low = tolower(all_players)
+```
+
+The function `str_extract_all()` from the `stringr` package [@stringrpackage] was used to test whether the text column contains any of the name or Twitter handles. A list-column was created because many of the tweets matched multiple names or twitter handles (when multiple players were mentioned in one tweet). Then, to create a data frame which duplicates the tweet for each player mentioned, the `unnest()` function from the `tidyr` package [@tidyrpackage] was used. This function takes a list-column then makes each element of the list its own row.
+
+```{r, include=FALSE}
+starters <- read.csv("/Users/juliannaalvord/Documents/nfl sentiment/sb analysis/sb_starters.csv", stringsAsFactors = FALSE)
+
 name <- starters$players
 
 #cleaning twitter column, selecting that column, then filtering out those without twitter handle
 twitter_clean <- starters %>%
   mutate(twitter_clean = sub("'", "", twitter)) %>%
-  select(twitter_clean) %>%
+  dplyr::select(twitter_clean) %>%
   filter(!twitter_clean == "")
 
 #list of twitter handles
@@ -169,128 +179,166 @@ twitter <- twitter_clean$twitter_clean
 #full name and twitter handle for streaming
 full_name <- c(name, twitter)
 
-#making list for str_extract_all function
+#making list for str_extract_all
 all_players <- paste(full_name, collapse='|')
 
-#lower case names and twitter handles
+#lowercasing player/handles for searching of text/quoted text
 all_players_low = tolower(all_players)
 ```
 
-The function str_extract_all from the stringr package @stringrpackage was used to test whether the text column contains any of the name or Twitter handles. A list column was created because many of the tweets matched multiple names or twitter handles (when multiple players were mentioned in one tweet). Then, to create a data frame which duplicates the tweet for each player mentioned, the unnest function from the tidyr @tidyrpackage was used. This function takes a list-column then makes each element of the list its own row.
 
-```{r, eval = FALSE}
-#lower casing text and quoted text to be able to search without missing any players
+```{r, eval = FALSE, size = "small"}
 full_more <- full %>%
  #pulling out the players from either text or quoted text
- mutate(name_text = str_extract_all(full_text_low, pattern = all_players_low))
+ mutate(name_text = str_extract_all(full_text_low, 
+                                    pattern = all_players_low))
 
 #unnesting the name_text list column
-full_more2 <- full_more %>%
-  unnest(name_text)
+full_more_unnest <- full_more %>%
+  unnest(name_text) 
+
+full_more_unnest %>%
+  dplyr::select(full_text_low, dup, name_text) %>%
+  head(n = 10L) %>%
+  kable(caption = "Head of Unnestest Tweet Data Frame",
+      caption.short = "unnesttweets") %>%
+  kable_styling(bootstrap_options = "striped", latex_options = "hold_position")
 ```
 
-Once complete, it was necessary to filter the data set to include only tweets that mentioned a player by their handle. To do so, I used the grepl function to determine if the new column that pulled out the name or handles from the tweet began with the “@” sign. Then, the other tweets were saved into a different data frame. Each was subsequently joined with the initial starter data set. Finally, these two data sets were row bound and two new columns were created. One filled in the twitter handles for the tweets that mentioned a name and the other filled in the names for the tweets that mentioned a handle. 
+Once complete, it was necessary to filter the data set to include only tweets that mentioned a player by their handle. To do so, I used the `grepl()` function to determine if the new column that pulled out the name or handles from the tweet began with the `@` sign. Then, the other tweets were saved into a different data frame. Each was subsequently joined with the initial starter data set. Finally, these two data sets were row bound and two new columns were created. One filled in the twitter handles for the tweets that mentioned a name and the other filled in the names for the tweets that mentioned a handle. 
 
-```{r, eval = FALSE}
+```{r, eval = FALSE, size = "small"}
 #lowering twitter handles and player names for join
-starters2 <- starters %>%
+starters_clean <- starters %>%
   mutate(twitter_clean = sub("'", "", twitter),
          twitter_clean2 = tolower(twitter_clean),
          name_clean = tolower(players)) %>%
   select(-c(players, twitter, twitter_clean))
 
 #filtering for tweets that mention a player by their @
-tweets_names <- full_more2 %>%
+tweets_names <- full_more_unnest %>%
   filter(!grepl("@", name_text))
 
 #filtering for tweets that mention a player by their full name
-tweets_handles <- full_more2 %>%
+tweets_handles <- full_more_unnest %>%
   filter(grepl("@", name_text))
 
 #tweets with names join
-tweets_names2 <- tweets_names %>%
+tweets_names_start <- tweets_names %>%
   left_join(starters2, by = c("name_text" = "name_clean"))
 
 #tweets with handles join
-tweets_handles2 <- tweets_handles %>%
+tweets_handles_start <- tweets_handles %>%
   left_join(starters2, by = c("name_text" = "twitter_clean2"))
 
 #row binding those two
-tweets_final <- tweets_handles2 %>%
-  bind_rows(tweets_names2) %>%
-  #next code creates final name and twitter columns by filling in with name_text (what was joined on)
+tweets_final <- tweets_handles_start %>%
+  bind_rows(tweets_names_start) %>%
+  #next code creates final name and twitter columns by filling in 
+  #with name_text (what was joined on).
          #in tweets with names df, left join gets rid of "name_clean" col
   mutate(name_clean_final = ifelse(is.na(name_clean), name_text, name_clean),
-         #in tweets with handles df, left join gets rid of "twitter_clean2" col
-         twitter_clean_final = ifelse(is.na(twitter_clean2), name_text, twitter_clean2))
+         #in tweets with handles df, lj gets rid of "twitter_clean2" col
+         twitter_clean_final = ifelse(is.na(twitter_clean2), name_text, 
+                                      twitter_clean2))
 ```
 
 ### Natural Language Processing
 
-The cleaned data set from above was loaded into the environment for both natural language processing and sentiment analysis. For both analyses, it was necessary to rearrange the data by following the steps detailed in the book titled Text Mining in R: A Tidy Approach [@textmining]. Here, the authors define the tidy text format as being “a table with one-token-per-row”. In this case, the token is an individual word. In other cases, a token could be any meaningful section of text, such as a sentence, phrase, or paragraph. The next analyses were made possible by the package tidytext package @tidytext. 
+The cleaned data set from above was loaded into the environment for both natural language processing and sentiment analysis. For both analyses, we rearranged the data by following the steps detailed by @textmining and is located in our first chapter. A flowchart of the typical tidy text analysis is included below. In this case, the token is an individual word. In other cases, a token could be any meaningful section of text, such as a sentence, phrase, or paragraph. The next analyses were made possible by the `tidytext` package [@tidytext]. 
 
 ```{r, echo = FALSE, fig.cap="Flowchart of a Typical Tidy Text Analysis", out.width = "475px"}
 include_graphics(path = "tidytext.png", auto_pdf = TRUE)
 ```
 
-To begin, a data frame containing only the words of the tweets was created. This was done by first selecting two columns: the status id, which are unique identifiers for each tweet, and the full text column. From there, the unnest_token function from the tidytext package was used to split the text column into words and create a row for each word of each tweet.
+To begin, a data frame containing only the words of the tweets was created. This was done by first selecting two columns: the status id, which are unique identifiers for each tweet, and the full text column. From there, the `unnest_token()` function from the `tidytext` package was used to split the text column into words and create a row for each word of each tweet.
 
-```{r, eval = FALSE}
-words <- tweets_final %>% 
-    select(status_id, full_text_low) %>% 
-    unnest_tokens(word,full_text_low)
+```{r, include=FALSE}
+load("/Users/juliannaalvord/Documents/nfl sentiment/sb analysis/unnest_tweets_final.rda")
 ```
 
-For both of the analyses, only certain words are of interest, especially when adding sentiment or determining which words were the most common. Other words, such as “and”, “is”, and “the”, are known as stop words and were filtered out. A stop words lexicon can be accessed through the tidytext package by using the function get_stopwords. Once the stop words data frame is loaded into the environment, we added additional rows for “words” that are common to tweets but are unnecessary for the environment. After the words and stop words data sets were created, the stop words data set was anti_joined to the words data set to filter those words out. From there, simple natural language processing such as determining most common words were possible. 
 
-```{r, eval = FALSE}
+```{r, mesage = FALSE, warning=FALSE, size = "small"}
+words <- tweets_final %>% 
+    dplyr::select(status_id, full_text_low) %>% 
+    unnest_tokens(word, full_text_low)
+```
+
+For both of the analyses, only certain words are of interest, especially when adding sentiment or determining which words are the most common. Other words, such as “and”, “is”, and “the”, are known as stop words and are filtered out. A stop words lexicon can be accessed through the `tidytext` package by using the function `get_stopwords()`. Once the stop words data frame is loaded into the environment, we added additional rows for “words” that are common to tweets but are unnecessary for the environment. After the words and stop words data sets were created, the stop words data set was `anti_joined` to the words data set to filter those words out. From there, simple natural language processing such as determining most common words were possible. 
+
+```{r, message = FALSE, warning=FALSE, size = "small"}
 #specifying stop words
 my_stop_words <- stop_words %>% 
-    select(-lexicon) %>% 
-    bind_rows(data.frame(word = c("https", "t.co", "rt", "amp","4yig9gzh5t","fyy2ceydhi","78","fakenews", "na")))
+    dplyr::select(-lexicon) %>% 
+    #adding common stop words from Twitter
+    bind_rows(tibble(word = c("https", "t.co", "rt", "amp",
+                              "4yig9gzh5t","fyy2ceydhi",
+                              "78","fakenews", "na")))
 
 #removing stop words
 tweet_words <- words %>% 
     anti_join(my_stop_words)
+
+#table
+tweet_words %>%
+  head(n = 10L) %>%
+  rename(`Status ID` = status_id, `Word` = word) %>%
+  kable(caption = "Head of Tweet Words Data Frame",
+      caption.short = "tweetwords") %>%
+  kable_styling(bootstrap_options = "striped", latex_options = "hold_position")
 ```
 
-An additional step was necessary to add sentiments to these words. The tidytext package includes three lexicons containing words and their corresponding sentiments. The three include AFINN from @afinn, bing from @hu2004mining, and nrc from @Mohammad13. The first assigns words with a number from -5 to 5, with 5 being the most positive words and -5 being the most negative words. The second simply assigns words as positive or negative. The third assigns words in a binary fashion into the categories of positive, negative, anger, anticipation, disgust, fear, joy, sadness, surprise, and trust. For our purposes, we used the bing lexicon. For simple counts of sentiment across the whole tweets data set, we simply joined the bing lexicon to the words data set.
+An additional step was necessary to add sentiments to these words. The `tidytext` package includes three lexicons containing words and their corresponding sentiments. The three include `AFINN` from @afinn, `bing` from @hu2004mining, and `nrc` from @Mohammad13. The first assigns words with a number from -5 to 5, with 5 being the most positive words and -5 being the most negative words. The second simply assigns words as positive or negative. The third assigns words in a binary fashion into the categories of positive, negative, anger, anticipation, disgust, fear, joy, sadness, surprise, and trust. For our purposes, we are using the `bing` lexicon. For simple counts of sentiment across the whole tweets data set, we simply join the `bing` lexicon to the words data set.
 
-```{r, eval = FALSE}
+```{r, message = FALSE, warning = FALSE, size = "small"}
 #getting sentiments- using bing
   bing_lex <- get_sentiments("bing")
 
 #joining words with the sentiments
 full_sentiments <- tweet_words %>%
   left_join(bing_lex)
+
+full_sentiments %>%
+  head(n = 10L) %>%
+  rename(`Status ID` = status_id, `Word` = word, `Sentiment` = sentiment) %>%
+  kable(caption = "Head of Tweet Words with Sentiment Data Frame",
+      caption.short = "tweetwordssent") %>%
+  kable_styling(bootstrap_options = "striped", latex_options = "hold_position")
 ```
 
 ### Sentiment Analysis by Player
 
-Given our interest in the differences in sentiments for players depending on demographic information, we needed to change the format of our data in order to determine the sentiment for each player individually. We ran a loop that ranged from 1-50, as there were 50 starting players in our Superbowl sample. For each player, the larger tweet data set was filtered for the player who's name matched the index of the loop. Then, the same process as above of unnesting the tweets by words, filtering out stop words, then joining to the sentiment lexicon was employed. Lastly, we wanted the data to be formatted in a data frame containing a single row with three columns. One column was the name of the player and the two others were the counts of negative and positive words. This data frame is saved into a list. Outside of the loop, we used the do.call function to execute the rbind function of the 50 data sets. This resulted in a data set of 50 rows and three columns that contained the counts of positive and negative words for each player. 
+Given our interest in the differences in sentiments for players depending on demographic information, we needed to change the format of our data in order to determine the sentiment for each player individually. To do so, we wrote a function called `add_sentiments` that takes an integer as an argument. Within the function, we filter the tweets_final data frame to match the indexed name. From there, the same process as above of unnesting the tweets by words, filtering out stop words, then joining to the sentiment lexicon is employed. Lastly, we want the data to be formatted in a data frame containing a single row with three columns. One column is the name of the player and the two others are the counts of negative and positive words. This data frame is returned by the function. In order to determine the sentiments of all 50 starting players, we used the `map_df()` function of the `purrr` package [@purrr]. This function takes a list from 1 to 50 as the first arguments and the function name as the second. By running `map_df()`, we effectively run our function for all 50 players. This results in a data set of 50 rows and three columns that contained the counts of positive and negative words for each player. 
 
-```{r, eval = FALSE}
+```{r, include = FALSE}
+starters_clean <- read.csv("/Users/juliannaalvord/Documents/nfl sentiment/sb analysis/starters2.csv", stringsAsFactors = FALSE)
+```
+
+```{r, message=FALSE, warning=FALSE, size = "small"}
 #list of names for loop
-names <- as.list(starters2$name_clean)
+names <- as.list(starters_clean$name_clean)
 
-#empty list to add sentiments for each player
-datalist = list()
+#index for the 5 names
+index <- as.list(1:length(names))
 
-for(i in 1:50) {
+#writing function
+add_sentiments <- function(i) {
   
-  #filter for each person
+  #filter for the person
   tweets <- tweets_final %>%
     filter(name_clean_final == names[i])
   
   #pick out words
   words <- tweets %>% 
-    select(status_id, full_text_low) %>% 
-    unnest_tokens(word,full_text_low)
+    dplyr::select(status_id, full_text_low) %>% 
+    unnest_tokens(word, full_text_low)
   
   #creating df of stop words  
   my_stop_words <- stop_words %>% 
-    select(-lexicon) %>% 
-    bind_rows(data.frame(word = c("https", "t.co", "rt", "amp","4yig9gzh5t","fyy2ceydhi","78","fakenews")))
+    dplyr::select(-lexicon) %>% 
+    bind_rows(data.frame(word = c("https", "t.co", "rt", "amp",
+                                  "4yig9gzh5t","fyy2ceydhi",
+                                  "78","fakenews")))
 
   #anti-join with stop words to filter those words out
   tweet_words <- words %>% 
@@ -308,81 +356,81 @@ for(i in 1:50) {
     filter(!is.na(sentiment)) %>% 
     group_by(sentiment) %>% 
     summarise(n=n())
-
-  #making df of sentiments for each person
+  
+  #making 1 row df of name and sentiment counts
   df_2 <- df %>%
   mutate(player = names[i]) %>%
   spread(key = sentiment, value = n)
-  
-  datalist[[i]] <- df_2
+
+  return(df_2)
   
 }
 
-#sentiments n for all players
-sentiments_full = do.call(rbind, datalist)
+#stacking sentiments for each player
+sentiments_full <- map_df(index, add_sentiments)
 ```
 
-This data set titled sentiments_full was then joined to the initial starters data set to match the sentiment counts to other demographic data. We created other variables including the total sentiment words (by adding the negative and positive counts), the percent of negative words (by dividing the negative count column by the total column), and the percent of positive words (by dividing the positive count column by the total column). 
+```{r, include = FALSE}
+sentiments_full <- sentiments_full %>%
+  unnest(player)
+```
 
-```{r, eval = FALSE}
+This data set named `sentiments_full` was then joined to the initial starters data set to match the sentiment counts to other demographic data. We created other variables including the total sentiment words (by adding the negative and positive counts), the percent of negative words (by dividing the negative count column by the total column), and the percent of positive words (by dividing the positive count column by the total column). 
+
+```{r, message = FALSE, warning=FALSE, size = "small"}
 #joining and creating percentages
-starters_sentiment <- starters %>%
+starters_sentiment <- starters_clean %>%
   left_join(sentiments_full, by = c("name_clean" = "player")) %>%
   mutate(totalsentiment = positive+negative,
-         neg_perc = negative/totalsentiment * 100,
-         pos_perc = positive/totalsentiment *100)
+         neg_perc = round(negative/totalsentiment * 100, 2),
+         pos_perc = round(positive/totalsentiment * 100, 2)) 
+
+starters_sentiment %>%
+  dplyr::select(name_clean, Race, position, negative, 
+                positive, totalsentiment, neg_perc, pos_perc) %>%
+  rename(Name = name_clean, Position = position, `Number of Neg Tweets` =
+           negative, `Number of Pos Tweets` = positive, 
+         `Total Number of Tweets` = totalsentiment,
+         `Percentage of Neg Tweets` = neg_perc,
+         `Percentage of Pos Tweets` = pos_perc) %>%
+  head(n = 10L) %>%
+  kable(caption = "Head of Starters Data Frame with Sentiment Percentages",
+      caption.short = "sentimentdf") %>%
+  kable_styling(bootstrap_options = "striped", latex_options = "hold_position")
 ```
 
-From here, we were able to create visualizations comparing average negative and positive percentages across different groups, including race, team, and position. 
+From here, we created visualizations comparing average negative and positive percentages across different groups, including race, team, and position. 
 
 ## Results
 
 ### What were the most popular words?
 
 ```{r, include=FALSE}
- #loading tweets file from sb_analysis
-load("/Users/juliannaalvord/Documents/nfl sentiment/sb analysis/unnest_tweets_final.rda")
-
 #loading in bing sentiment
 starters_sent <- read.csv("/Users/juliannaalvord/Documents/nfl sentiment/sb analysis/starters_sentiments_bing.csv", stringsAsFactors = FALSE)
-
-
 ```
 
-In total, `r nrow(tweets_final)` tweets were gathered for the 50 starting players during the 7-hour specified period. 
+In total, `r format(nrow(tweets_final), scientific=FALSE, big.mark = ",")` tweets were gathered for the 50 starting players during the 7-hour specified period. 
 
 
 The 20 words that were used the most often (after removing stop words) are shown below.
 
-```{r, include = FALSE}
-#one word per row
-words <- tweets_final %>% 
-    dplyr::select(status_id, full_text_low) %>% 
-    unnest_tokens(word,full_text_low)
-
-#specifying stop words
-my_stop_words <- stop_words %>% 
-    dplyr::select(-lexicon) %>% 
-    bind_rows(data.frame(word = c("https", "t.co", "rt", "amp","4yig9gzh5t","fyy2ceydhi","78","fakenews", "na")))
-
-#removing stop words
-tweet_words <- words %>% 
-    anti_join(my_stop_words)
-```
-
-
-```{r, message=FALSE, warning=FALSE, fig.cap="Top 20 Most Popular Words"}
+```{r popular, message=FALSE, warning=FALSE, fig.cap="Top 20 Most Popular Words", size = "small"}
 #word counts
 word_counts <- tweet_words %>%
   count(word, sort = TRUE)
 
 #viz
-ggplot(word_counts %>% head(n = 20L) %>% mutate(word = reorder(word, n)), aes(word, n)) +
+ggplot(word_counts %>% head(n = 20L), 
+       aes(reorder(word, n), n)) +
   geom_col() +
   xlab(NULL) +
-  coord_flip()
+  ylab("Counts") +
+  scale_y_continuous(labels = comma) +
+  coord_flip() +
+  theme_classic()
 ```
-As seen from the above visualization, the top four most popular words are "tom", "brady", "super", and "bowl". Of the 20 top words, 9 were names of players. We decided to determine the 20 top words without names by adding the list of full names and twitter handles to our stop words data set. Those words are below.
+In Figure \@ref(fig:popular), the top four most popular words are "tom", "brady", "super", and "bowl". Of the 20 top words, 9 were names of players. We decided to determine the 20 top words without names by adding the list of full names and twitter handles to our stop words data set. Those words are below.
 
 ```{r, include=FALSE}
 names <- starters_sent$name_clean
@@ -415,13 +463,18 @@ word_counts <- tweet_words %>%
   count(word, sort = TRUE)
 ```
 
-```{r, warning=FALSE, message=FALSE, fig.cap="Top 20 Most Popular Words without Names"}
-ggplot(word_counts %>% head(n = 20L) %>% mutate(word = reorder(word, n)), aes(word, n)) +
+```{r popnonames, warning=FALSE, message=FALSE, fig.cap="Top 20 Most Popular Words without Names", size = "small"}
+#viz
+ggplot(word_counts %>% head(n = 20L), 
+       aes(reorder(word, n), n)) +
   geom_col() +
   xlab(NULL) +
-  coord_flip()
+  ylab("Counts") +
+  scale_y_continuous(labels = comma) +
+  coord_flip() +
+  theme_classic()
 ```
-Here, the top four most popular words are "super", "bowl", "patriots", and "superbowl".
+In Figure \@ref(fig:popnonames), the top four most popular words are "super", "bowl", "patriots", and "superbowl".
 
 ### Who had the most tweets from the Patriots?
 
@@ -435,64 +488,72 @@ starters_sent_n <- starters_sent %>%
   gather(sentiment, perc, 11:12)
 ```
 
-```{r, message=FALSE, warning=FALSE, fig.cap="Number of Tweets per Patriots Player"}
+```{r tweetspats, message=FALSE, warning=FALSE, fig.cap="Number of Tweets per Patriots Player", size = "small"}
 #number of tweets for each player on NE
 ggplot(starters_sent_n %>% 
-         filter(team == "NE") %>%
-         mutate(name_clean = reorder(name_clean, n)), aes(name_clean, n)) +
+         filter(team == "NE"),
+       aes(reorder(name_clean, n), n/2)) +
   geom_col() +
   xlab(NULL) +
-  ylab("n tweets") +
-  coord_flip()
+  ylab("Number of Tweets") +
+  scale_y_continuous(labels = comma) +
+  coord_flip() +
+  theme_classic()
 ```
-The players with the most tweets are Tom Brady, Julian Edelman, Stephen Gostkowski, Sony Michel, and Rob Gronkowski. Quite a few players had so few tweets compared to the top few players that it cannot be determined from this visualization the exact number of tweets each player had. Below is a table that includes each player, their position, race, and number of tweets. 
+In \@ref(fig:tweetspats), The players with the most tweets are Tom Brady, Julian Edelman, Stephen Gostkowski, Sony Michel, and Rob Gronkowski. Tom Brady is the star quarterback for the Patriots. As the quarterback, most plays revolve around his actions. Julian Edelman is a wide receiver and was named the MVP of Super Bowl LIII. Stephen Gostkowski is the kicker. The kicker's performance, especially in a Super Bowl, is important as the three points from a field goal can make or break the game outcome. Sony Michel is a running back and Rob Gronkowski is the Patriot's popular tight end. The position of these players leads them to have a lot of contact with the ball throughout the game. Quite a few players had so few tweets compared to the top few players that it cannot be determined from this visualization the exact number of tweets each player had. Below is a table that includes each player, their position, race, and number of tweets. 
 
-```{r, echo=FALSE, message=FALSE, warning=FALSE}
-starters_sent_n %>% 
-         filter(team == "NE") %>%
-         dplyr::select(name_clean, position, off_def_sp, Race, n) %>%
-         group_by(name_clean) %>%
-         summarise(Position = max(position), off_or_def = max(off_def_sp), Race = max(Race), n_tweets = max(n)) %>%
-         arrange(desc(n_tweets)) %>%
+```{r tweetspatst, echo=FALSE, message=FALSE, warning=FALSE}
+starters_sent_n %>%
+  filter(team == "NE") %>%
+  dplyr::select(name_clean, position, off_def_sp, Race, n) %>%
+  group_by(name_clean) %>%
+  summarise(Position = max(position), `Position group` = max(off_def_sp),
+            Race = max(Race), `Number of tweets` = max(n)) %>%
+  arrange(desc(`Number of tweets`)) %>%
+  rename(Name = name_clean) %>%
   kable(caption = "Number of Tweets per Patriots Player",
-      caption.short = "Number of Tweets per Patriots Player") %>%
-  kable_styling(bootstrap_options = "striped")
+      caption.short = "tweetspatst") %>%
+  kable_styling(bootstrap_options = "striped", latex_options = "hold_position")
 ```
 
 
 ### Who had the most tweets from the Rams?
 
-```{r, message = FALSE, warning = FALSE, fig.cap="Number of Tweets per Rams Player"}
+```{r tweetsrams, message = FALSE, warning = FALSE, fig.cap="Number of Tweets per Rams Player", size = "small"}
 #number of tweets for each player on LA
 ggplot(starters_sent_n %>% 
-         filter(team == "LA") %>% 
-         mutate(name_clean = reorder(name_clean, n)), aes(name_clean, n)) +
+         filter(team == "LA"),
+       aes(reorder(name_clean, n), n/2)) +
   geom_col() +
   xlab(NULL) +
-  ylab("n tweets") +
-  coord_flip() 
+  ylab("Number of Tweets") +
+  scale_y_continuous(labels = comma) +
+  coord_flip() +
+  theme_classic()
 ```
-The players with the most tweets are Jared Goff, Todd Gurley, Aaron Donald, Andrew Witworth, and Johnny Hekker. Again, the number of tweets for many players cannot be determined based on this visualization. Again, below is a table of each players demographic information and number of tweets.
+In figure \@ref(fig:tweetsrams), the players with the most tweets are Jared Goff, Todd Gurley, Aaron Donald, Andrew Witworth, and Johnny Hekker. Those first two players are the quarterback and leading running back, respectively. Aaron Donald is a defensive tackle, Andrew Witworth is an offensive tackle, and Johnny Hekker is the punter. Unlike with the Patriots, these players are not necessarily those who would have the most contact with the ball. Again, the number of tweets for many players cannot be determined based on this visualization. Below is another table of each players demographic information and number of tweets.
 
-```{r, message=FALSE, warning=FALSE, echo=FALSE}
+```{r tweetsramst, message=FALSE, warning=FALSE, echo=FALSE}
 starters_sent_n %>% 
-         filter(team == "LA") %>%
-         dplyr::select(name_clean, position, Race, off_def_sp, n) %>%
-         group_by(name_clean) %>%
-         summarise(Position = max(position), off_or_def = max(off_def_sp), Race = max(Race), n_tweets = max(n)) %>%
-         arrange(desc(n_tweets)) %>%
+  filter(team == "LA") %>%
+  dplyr::select(name_clean, position, Race, off_def_sp, n) %>%
+  group_by(name_clean) %>%
+  summarise(Position = max(position), `Position group` = max(off_def_sp),
+            Race = max(Race), `Number of tweets` = max(n)) %>%
+  arrange(desc(`Number of tweets`)) %>%
+  rename(Name = name_clean) %>%
   kable(caption = "Number of Tweets per Rams Player",
-      caption.short = "Number of Tweets per Rams Player") %>%
-  kable_styling(bootstrap_options = "striped")
+      caption.short = "tweetsramst") %>%
+  kable_styling(bootstrap_options = "striped", latex_options = "hold_position")
 ```
 
-A few observations from the two tables are that the player with the most amount of tweets on both teams is the quarterback and a majority of the players in the top 5 are offensive players. 
+A few observations from tables \@ref(tab:tweetspatst) and \@ref(tab:tweetsramst) are that the player with the most tweets on both teams is the quarterback and a majority of the players in the top 5 are offensive players. 
 
 ### Which team has a higher negative sentiment percentage?
 
-Though no formal hypotheses were made in this study, we expect that the team that loses will see a higher average negative sentiment percentage. Therefore, we expected the Rams, who lost, to have a higher average negative sentiment compared to the Patriots. This was tested directionally and no models were fit.
+Although no formal hypotheses were made in this study, we expect that the team that loses will see a higher average negative sentiment percentage. Therefore, we expected the Rams, who lost, to have a higher average negative sentiment compared to the Patriots. This was tested directionally and no models were fit.
 
-```{r, include=FALSE}
+```{r, include=FALSE, size = "small"}
 starters_sent_format <- starters_sent %>%
   dplyr::select(name_clean, team, 11:12) %>%
   gather(sentiment, n, 3:4)
@@ -503,20 +564,23 @@ starter_sent_2 <- starters_sent_format %>%
   filter(sentiment == "neg_perc")
 ```
 
-```{r, message=FALSE, warning = FALSE, fig.cap="Average Negative Sentiment Percentage by Team"}
+```{r, message=FALSE, warning = FALSE, fig.cap="Average Negative Sentiment Percentage by Team", size = "small"}
 #sentiments by team
 ggplot(starter_sent_2, aes(x = sentiment, y = mean_perc_sent)) +
   geom_bar(stat = "identity", position = "dodge", color = "black") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + facet_wrap(~team, ncol = 2) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
+  facet_wrap(~team, ncol = 2) +
   ylab("Average Negative Percentage") +
-  geom_label(aes(label = round(mean_perc_sent, 2))) +
-  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), axis.title.x = element_blank())
+  geom_label(aes(label = round(mean_perc_sent, 0))) +
+  theme(axis.text.x = element_blank(), 
+        axis.ticks.x = element_blank(), 
+        axis.title.x = element_blank())
 ```
-Luckily, our data matched this expectation. The average negative sentiment percentage for the Rams was 35.05% while the average negative sentiment for the Patriots was 24.5%.
+Luckily, our data matched this expectation. The average negative sentiment percentage for the Rams was 35% while the average negative sentiment for the Patriots was 25%.
 
 ### Which racial group had a higher average negative sentiment percentage?
 
-We wanted to test to see if there appeared to be directional differences in the mean negative sentiments for black players and white players. This was tested across all players then within teams.
+We wanted to see if there appeared to be directional differences in the mean negative sentiments for black players and white players. This was explored across all players then within teams.
 
 ```{r, include=FALSE}
 #gathering by race, player, and sentiment
@@ -531,17 +595,19 @@ starter_sent_2 <- starters_sent_format %>%
   filter(sentiment == "neg_perc")
 ```
 
-```{r, message = FALSE, warning= FALSE, fig.cap="Average Negative Words Percentage by Race"}
+```{r raceneg, message = FALSE, warning= FALSE, fig.cap="Average Negative Words Percentage by Race", size = "small"}
 #sentiments by race
 ggplot(starter_sent_2, aes(x = sentiment, y = mean_perc_sent, fill = Race)) +
   geom_bar(stat = "identity", position = "dodge", color = "black") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   scale_fill_manual(values=c("black", "white")) +
   ylab("Average Negative Percentage") +
-  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), axis.title.x = element_blank())
+  theme(axis.text.x = element_blank(), 
+        axis.ticks.x = element_blank(), 
+        axis.title.x = element_blank())
 ```
 
-From this graph, we can see that white players have higher average negative sentiment percentages across both teams.
+From \@ref(fig:raceneg), we can see that white players had higher average percentage of negative words across both teams.
 
 ```{r, include = FALSE}
 #gathering by race, player, team, and sentiment
@@ -556,23 +622,26 @@ starter_sent_2 <- starters_sent_format %>%
   filter(sentiment == "neg_perc")
 ```
 
-```{r, message=FALSE, warning = FALSE, fig.cap="Average Negative Words by Race and Team"}
+```{r raceteamneg, message=FALSE, warning = FALSE, fig.cap="Average Negative Words by Race and Team", size = "small"}
 #sentiments by race and team
 ggplot(starter_sent_2, aes(x = sentiment, y = mean_perc_sent, fill = Race)) +
   geom_bar(stat = "identity", position = "dodge", color = "black") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  scale_fill_manual(values=c("black", "white")) + facet_wrap(~team, ncol = 2) +
+  scale_fill_manual(values=c("black", "white")) + 
+  facet_wrap(~team, ncol = 2) +
   ylab("Average Negative Percentage") +
-  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), axis.title.x = element_blank())
+  theme(axis.text.x = element_blank(), 
+        axis.ticks.x = element_blank(), 
+        axis.title.x = element_blank())
 ```
-When split by team, we see a higher average negative sentiment percentage for black players on the Rams and for white players on the Patriots. 
+When split by team, we see a higher average negative sentiment percentage for black players on the Rams and for white players on the Patriots. This empirical finding presages our more rigourous hypothesis in the next chapter.
 
 ## Conclusions and Moving Forward
 
-A few basic conclusions and observations were made regarding the results of our first study. First, in regards to the top words, many did not have sentiments attached to them because they are specific to football. For example, one of the words in the top 20 is "goat". This is a word often used when describing Tom Brady. Technically, it is an acronym and stands for "greatest of all time". This common word is quite positive however it is not included in the sentiment lexicon. Other words that are specific to football that need to be added to the lexicon as positive words when in a football context are "history", "ring", "rings", "dynasty", "clutch", "congrats", and "g.o.a.t". 
+A few basic conclusions and observations were made regarding the results of our first study. First, in regards to the top words, many did not have sentiments attached to them because they are specific to football. For example, one of the words in the top 20 is "goat". This is a word often used when describing Tom Brady. Technically, it is an acronym and stands for "greatest of all time". This common word is quite positive however it is not included in the sentiment lexicon. Other words that are specific to football that need to be added to the lexicon as positive words when in a football context are "history", "ring", "rings", "dynasty", "clutch", "congrats", and "g.o.a.t.". 
 
 Next, based on the number of tweets for the 50 players, we realized that the quarterbacks and receivers (running backs, wide receivers, and tight ends) were popular on Twitter. Almost all of the players whose positions match those two categories were near the top for their team in terms of number of tweets. This conclusion directed the decisions we made when choosing the subset for our next study.
 
-Finally, from our visualizations from above as well as a contextual knowledge of the game allowed us to confirm that our data was not random. For one example, Stephen Gostkowski, a kicker for the Patriots, had an extraordinarily high negative sentiment percentage at 96.55%. This is mostly unsurprising, as he missed an early field goal that would have given New England their first points of the game. On the opposite side, Julian Edelman, a wide receiver for the Patriots, was named the MVP of the game and his positive sentiment percentage matched this at 90.39%. These examples, along with the differences depending on outcome, gave us confidence that Twitter data was appropriate to use to model sentiment percentage differences between racial groups and depending on outcomes. 
+Finally, from our visualizations from above as well as a contextual knowledge of the game allowed us to confirm that our data was not random. For one example, Stephen Gostkowski, a kicker for the Patriots, had an extraordinarily high negative sentiment percentage at 96.55%. This is mostly unsurprising, as he -despite being an excellent kicker in general- missed an early field goal that would have given New England their first points of the game. On the opposite side, Julian Edelman, a wide receiver for the Patriots, was named the MVP of the game and his positive sentiment percentage reflected this at 90.39%. These examples, along with the differences depending on outcome, gave us confidence that Twitter data was appropriate to use to model sentiment percentage differences between racial groups and depending on outcomes. 
 
 
