@@ -10,7 +10,7 @@ If you feel it necessary to include an appendix, it goes here.
 # The First Appendix
 
 ###Python function to gather tweets mentioning names
-```{r, eval = FALSE}
+```{r, eval = FALSE, size = "small"}
 def get_tweets_name(data, start, end):
     
     #getting the twitter handles
@@ -113,7 +113,7 @@ def get_tweets_name(data, start, end):
 
 
 ###Python function to gather tweets mentioning handles
-```{r, eval = FALSE}
+```{r, eval = FALSE, size = "small"}
 def get_tweets_handle(data, start, end):
     
     #getting the twitter handles
@@ -215,7 +215,7 @@ def get_tweets_handle(data, start, end):
 ```
 
 ###Function in R to determine sentiment for each time point
-```{r, eval = FALSE}
+```{r, eval = FALSE, size = "small"}
 sent_tall <- function(t){
   
 names <- as.list(subset2$name_clean)
