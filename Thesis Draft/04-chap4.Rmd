@@ -27,7 +27,7 @@ library(knitr)
 
 After gathering the analyzing tweets posted during the Superbowl, we wanted to create a balance study that would allow us to build models to determine if there are significant relationships between race, outcome, and percentage of negative tweets. As previously stated, our research question was: Are sentiments on Twitter more negative towards black NFL players during a failed outcome (a loss) and more positive towards white NFL players during a successful outcome (a win)? In order to add outcome to this analysis, we decided to include multiple games as separate time points. 
 
-We hypothesized that during a game that was lost, sentiments would be more negative toward black players and during a game that was won, sentiments would be more positive toward white players. 
+We had two main hypotheses. First, we hypothesized that during a game that was won, sentiments would be less negative. Second, we hypothesized that during a game that was lost, sentiments would be more negative toward black players and during a game that was won, sentiments would be more positive toward white players. 
 
 ##Methods
 
@@ -74,7 +74,7 @@ These 24 players were added to a dataset. Also included were variables correspon
 
 In study 1, we used a function from the rtweet package in R. However, there is no package in R that supports the full-archive search method. Instead, we used a library in Python titled searchtweets @searchtweets. Like in study 1, we were required to setup and load authentication, first online and then using the function load_credentials. 
 
-```{r, eval = FALSE}
+```{r, eval = FALSE, size = "small"}
 premium_search_args = load_credentials("~/.twitter_keys.yaml",
                                           yaml_key="search_tweets_api",
                                           env_overwrite=False)
@@ -82,13 +82,13 @@ premium_search_args = load_credentials("~/.twitter_keys.yaml",
 
 The ".twitter_keys.yaml" is a file that contains the same information loaded into the create_token function of the rtweet package. Once the authentication process is complete, we loaded our data into the environment using the function  read_csv() from the pandas library @mckinney2010data.
 
-```{r, eval=FALSE}
+```{r, eval=FALSE, size = "small"}
 data = pandas.read_csv("~PATH/final_subset.csv")
 ```
 
 Given that we had many variables which needed to change each time we ran the function to gather tweets, we decided to create three functions to simplify the process. The first takes a list of team names and filters the data for players on those teams. 
 
-```{r, eval = FALSE}
+```{r, eval = FALSE, size = "small"}
 def get_data(teams):
     data_1 = data[data.Team.isin(teams)]
     
@@ -99,7 +99,7 @@ The second and third functions are more complicated. The two are almost exactly 
 
 Below is the tweet-gathering loop from one of our functions. Both entire functions can be found in the data appendix. 
 
-```{r, eval = FALSE}
+```{r, eval = FALSE, size = "small"}
 #running loop for tweets
     
     all_tweets = []
@@ -129,7 +129,7 @@ The next part of the function selects certain aspects of the twitter metadata an
 
 For each set of teams with the same starting and ending times each week, these three functions were run. Then, the two data frames containing the tweets and corresponding metadata were saved as .csv files. Below is an example.
 
-```{r, eval = FALSE}
+```{r, eval = FALSE, size = "small"}
 #specifying teams with the same start and end times for week 1
 teams = ["Kansas City Chiefs", "Tampa Bay Buccaneers", "Baltimore Ravens", "Philadelphia Eagles", "Carolina Panthers"]
 #filtering for those players
@@ -146,7 +146,7 @@ data_t1_2_tweetsH.to_csv("~PATH/tweets_t1_1_H.csv", index = False)
 
 After gathering tweets for all of the teams for each time point (week of games), all the data frames were row binded. That larger data frame was then saved as a .csv file.
 
-```{r, eval = FALSE}
+```{r, eval = FALSE, size = "small"}
 #binding tweets from t1 together
 T1 = pd.concat([data_t1_1_tweets, data_t1_2_tweets, 
                 data_t1_3_tweets, data_t1_4_tweets, 
@@ -161,7 +161,7 @@ T1.to_csv("~PATH/tweets_t1_all.csv", index = False)
 
 The data frames containing the tweets and metadata from each time point were loaded into R for cleaning. Luckily, these data had the same format as the data from the first study. Therefore, many of the same cleaning techniques were used. However, before these data frames were all combined, a column containing a time identifying string (ex. "t_1" for the tweets from the first week), was added. Then, these five data frames were row binded to create one data frame that contains all of the gathered tweets.
 
-```{r, eval = FALSE}
+```{r, eval = FALSE, size = "small"}
 #loading in the data
 for (i in 1:length(files)) {
   
@@ -191,7 +191,7 @@ full <- bind_rows(t_1, t_2, t_3, t_4, t_5)
 
 From there, the same cleaning techniques from study 1 were employed. One final step of joining the tweets with a data frame of the game outcomes for each team. 
 
-```{r, eval = FALSE}
+```{r, eval = FALSE, size = "small"}
 tweets_final <- tweets_final %>%
   left_join(outcomes, by = c("Team", "time"))
 ```
@@ -200,7 +200,7 @@ tweets_final <- tweets_final %>%
 
 Again, our functions and techniques from the previous study were employed with slight variations. From the last study, I found that certain words commonly used by by football fans on Twitter are not included in the lexicon but are used as positive sentiments. The first step for sentiment analysis of this study was to add these words as rows to the end of the bing lexicon data frame. 
 
-```{r, eval = FALSE}
+```{r, eval = FALSE, size = "small"}
 #creating data frame with additional sentiments
 extra<-data.frame(c("rings", "ring", "history", "clutch", "congrats", "dynasty", "goat", "g.o.a.t."), 
                c("positive", "positive", "positive", "positive", "positive", "positive", "positive", "positive"))
@@ -214,7 +214,7 @@ sent_full <- rbind(bing_lex, extra)
 
 From there, the same loop run in the previous study could be utilized if we wanted the positive and negative word counts for each player across all five time points. However, for the purpose of our study, we wrote an altered function that determines the sentiments for each player at each time point. This was done by adding a time argument that filters the tweets for that time point. Also, within the function, the other variables of total sentiment, negative word percentage, positive word percentage, time, and player name were added to the counts data frame. 
 
-```{r, eval = FALSE}
+```{r, eval = FALSE, size = "small"}
 sent_tall <- function(t){
   
 names <- as.list(subset2$name_clean)
@@ -277,7 +277,7 @@ return(sentiment_full)
 
 This function was run 5 times to determine sentiments for each of the five time points. These were rowbinded to create a data frame with 120 rows (24 players * 5 time points). Then, it was joined with the subset dataframe that had 5 rows per player to include outcome per time point. 
 
-```{r, eval = FALSE}
+```{r, eval = FALSE, size = "small"}
 #sentiments for time 1
 sent_tall_1 <- sent_tall(1)
 
@@ -308,7 +308,7 @@ sent_tall_full1 <- outcomes_players %>%
 
 The data frame created here is the final one to be used in our model. However, one additional variable was added to account for individual performance during a game. To gather game level data, we used the nflscrapR package in R [@nflscrapr]. First, we used the scrape_game_ids function to gather the game ids for the first 6 weeks of the 2017 season. Then, I filtered for only the teams included in my subset.
 
-```{r, eval = FALSE}
+```{r, eval = FALSE, size = "small"}
 #gathering game ids for first 6 weeks in 2017
 week1_to_6 <- scrape_game_ids(2017, weeks = c(1, 2, 3, 4, 5, 6))
 
@@ -322,7 +322,7 @@ week1_to_6_filt <- week1_to_6 %>%
 
 After that, 6 dataframes were created that each contained the game ids for the corresponding week. Weeks 1 and 6 had additional filtering arguments to filter for the correct teams. From there, a column that included a players first initial and last name was added to the subset df. For each week, the game ids were added to a list. Then, a loop iterated through them and stats for that game were added to another list (as a data frame) using the player_game function of the nflscrapr package. Those dataframes were subsequently row binded. Once the dataframe containing all the stats for the games of that week, it was filtered for the players of our subset. The variable of yards per game was creating by combining the three columns of passing yards, rushing yards, and receiving yards. 
 
-```{r, eval = FALSE}
+```{r, eval = FALSE, size = "small"}
 ##week 2
 #game ids added to list
 week2 <- as.list(week2$game_id)
@@ -423,7 +423,7 @@ The normal method to estimate coefficients in multilevel regression is the maxim
 
 To fit the above model in R, the nlme package was used [@nlme]. The function used is lme, which in our case, took three arguments: the fixed effects, the random effects, and the data. The code used is below. 
 
-```{r, eval = FALSE}
+```{r, eval = FALSE, size = "small"}
 mlm_model <- lme(neg_perc ~ outcome * Race + position + yards_fixed,
                random = ~ 1 | Team.x/name_2, data = data2)
 ```
@@ -471,7 +471,7 @@ ggplot(data2, aes(neg_perc)) + geom_histogram(bins = 10) +
   xlab("Percentage of Negative Words")
 ```
 
-When breaking down by race and outcome, the median percentage of negative words for a win is 46.2% for black players and 46.89% for white players. For a loss, the mean percentage of negative words is 65.17% for black players and 58.96%. 
+When breaking down by race and outcome, our two main variables of focus, the median percentage of negative words for a win is 46.2% for black players and 46.89% for white players. For a loss, the mean percentage of negative words is 65.17% for black players and 58.96%. 
 
 ```{r, include=FALSE}
 sent_tall_full1 <- read.csv("/Users/juliannaalvord/Documents/nfl sentiment/final_data/use_for_model1.csv", stringsAsFactors = F)
@@ -539,15 +539,29 @@ Table: (\#tab:inher) Estimates of $\delta$ coefficients from our multilevel regr
 
 The resulting formula with the $\delta$ coefficients included is as follows:
 
-$ ~ $
+$~$
 
 ${negperc} = 74.21 - 19.08\widehat{OutcomeW} - 7.22\widehat{RaceW} - 4.11\widehat{PositionR} - 0.09\widehat{Yards} + 6.74\widehat{OutcomeW:RaceW}$
 
 The intercept, $\delta_{000}$, of 74.21 means that the average percentage of negative words for black players during a loss is 74.21%, holding position and yards constant. The $\delta_{001}$ coefficient estimate of -19.08 means that on average, the percentage of negative words for black players decreases by 19.08% during a win, holding position and yards constant. This coefficient estimate is significant, p < 0.05. The $\delta_{010}$ coefficient estimate of -7.22 means that on average, the percentage of negative words during a loss decreases by 7.22% for white players, holding position and yards constant. This coefficient estimate is not significant, p > 0.05. The $\delta_{020}$ coefficient estimate of -4.11 means that on average, the percentage of negative words during a loss for black players decreases by 4.11% for receivers, holding yards constant. This coefficient estimate is not significant, p > 0.05. The $\delta_{100}$ coefficient estimate of -0.09 means that on average, for each 1 additional yard gained by a player, the percentage of negative words for black players during a win decreases by 0.09%, holding position constant. This coefficient estimate is significant, p < 0.05. The coefficient estimate of 6.72 for the intercept between race and outcome means that during a win, the percentage of negative words for white players increases by 6.72%, holding position and yards constant. This coefficient estimate is not significant, p > 0.05.
 
-ICC shit
+### ICC
 
-For comparison, below are the results of a baseline logistic regression model which can't pick up the random effects of our data.
+The intraclass correlation (ICC) in multilevel modeling indicates the proportion of the variance explained by the clustered structure and are measured by dividing the variance for that level over the total variance:
+
+$ICC_{V_j} = \sigma_{V_j}^2/\sigma_{V_j}^2+\sigma_{U_ij}^2+\sigma_{\epsilon_tij}^2$
+
+$~$
+
+$ICC_{U_ij} = \sigma_{U_ij}^2/\sigma_{V_j}^2+\sigma_{U_ij}^2+\sigma_{\epsilon_tij}^2$
+
+$~$
+
+For our model, the ICC is 0.05 for level 3 (team level) and .12 for level 2 (player level). These numbers inform us that we have very little team variance but slightly higher player variance. Generally, this means that there is little evidence that football fans on Twitter feel more or less negatively about certain teams but slightly stronger evidence that they feel more or less negatively about certain players. Though these numbers are small, we do not believe that this is sufficient evidence to treat our observations as indepedent. Therefore, these results further confirm that the use of multilevel regression to account for these variances at each level is necessary. 
+
+### Baseline Linear Regression Model
+
+For comparison, below are the results of a baseline logistic regression model which cannot pick up the random variance of our data.
 
 ```{r, echo = FALSE, include = FALSE}
 model_lm <- lm(neg_perc ~ outcome * Race + position + yards_fixed, data = data2)
@@ -572,29 +586,25 @@ model_lm <- lm(neg_perc ~ outcome * Race + position + yards_fixed, data = data2)
 ------------------------- --------------- -------------- --------------
 Table: (\#tab:inher) Estimates of $\beta$ coefficients from basic linear regression model
 
-As seen from the two tables, there are differences with coefficients, standard errors, and p-values. Almost all of the p-values that correspond to the coefficient estimates are smaller from the linear regression model.
+As seen from the two tables, there are differences between coefficients, standard errors, and p-values. Almost all of the p-values that correspond to the coefficient estimates are smaller from the linear regression model.
 
-##Conclusion
+##Discussion
 
-To begin, our results suggest that there is a signficant relationship between outcome and percentage of negative word. The negative direction of this coefficient, meaning that a win results in a lower percentage of negative words, assured us that our data...
+To begin, our results suggest that there is a signficant relationship between outcome and percentage of negative words. The negative direction of this coefficient, meaning that a win results in a lower percentage of negative words, assured us that our data was realiable. If the percentage of negative words increased during a win, we would be suspicious that our data was not usable. This direction informs us that during a positive outcome, the percentage of negative words towards players decreases. This also confirmed our first hypothesis. The direction of the other significant variable, total yards, also suggests that better performance leads to a lower percentage of negative words, another indicator of reliable data.
+
+The main research question for this project mainly involved differences between white and black players. To reiterate, our research question was: Are sentiments on Twitter more negative towards black NFL players during a failed outcome (a loss) and more positive towards white NFL players during a successful outcome (a win)? We also hypothesized that during a game that was lost, sentiments would be more negative toward black players and during a game that was won, sentiments would be more positive toward white players. Though our race variable was not signficant at the 0.05 level, it's negative direction matched what we expected. The coefficient estimate indicates that during a loss, sentiments are more negative towards black players. However, our interaction variable suggest that this difference is much smaller during a win. For a white player during a win, the percentage of a negative words is only 0.5% (-7.22% + 6.72%) lower compared to black players. While again not significant, our model does directionally match our hypothesis. However, the differences in percentage of negative words between white and black players is much smaller during a win. 
+
+While our model's coefficient estimate for position was negative, meaning that receivers receive fewer negative sentiments on average than quarterbacks, this was not significant. We did not expect there to be differences between the two positions and included this variable in order to control for position while investigating the relationship between race, outcome, and percentage of negative words.
+
+Our results are consistent with other studies that found that language for black and white football players is unequal, with black players receiving more negative sentiments than white players, especially during a loss. This disparity is evidence of racial microaggressions from sports fans, a phenomenom rarely studied without survey data. Unlike other research, this study used data on a much larger scale to quantify previous findings. As stated in chapter 1, @hylton2016your argues that further research involving more subtle forms of racism and racial discrimination in sports is necessary. Through this study, one of our main goals was to shed light on a subtle form of racism which takes form through racially disproportionate negative language.
 
 ###Limitations and Future Directions
 
-These results should be considered in light of their limitations. First, some players were missing data at certain time points. This means that no positive or negative words were included in the tweets for those players at that time point. This lowered our already small sample size which can have an affect on the validity of our results. The small sample size was partially due to the Twitter API limits. In order to gather enough tweets to find positive and negative words, we could not have added more time points and increased our sample. 
+These results should be considered in light of their limitations. First, some players were missing data at certain time points. This means that no positive or negative words were included in the tweets for those players at that time point. This lowered our already small sample size which can have an affect on the validity of our results. The small sample size was partially due to the Twitter API limits. In order to gather enough tweets to find positive and negative words, we could not have realistically added more time points. If we were able to gather more than 250,000 tweets, we could have added more time points while still gathering enough tweets for sentiment analyses. This would have increased our sample size and made our estimates more accurate. By doing so, additional important relationships may have be revealed.
 
-Additionally, this study only gathered tweets for 24 players, which is a small subset of the entire NFL roster of quarterbacks and receivers. With more players added to the study, our results may be more generalizable. In the future, it would be 
+Additionally, this study only gathered tweets for 24 players, which is a small subset of the entire NFL roster of quarterbacks and receivers. With more players added to the study, our results may be more generalizable. In the future, it would be beneficial to gain higher access to Twitter's API search. Unfortunately, this would require a larger monetary contribution which was not possible in the current study. Luckily, as seen from study 1, there are other methods of accessing the API which are free. With enough planning, tweets could be gathered using the streaming function during the games of the upcoming season. This could both increase the subset of players and number of total tweets. 
 
-Nonetheless, these limitations are offset by strengths. 
+Another limitation to this study is that the race of the players is based on our perception and could be unreliable. In the future, having multiple people offer their perceptions of the players' races could improve results and reduce biases. In addition to the race variable, adding more demographic data about the players or extra variables of individual performance could better disseminate the relationship of interest from our research question.  
 
-Plenty:
-
-- Missing data for some players
-- Lack of data because of Twitter limits
-- Perceived race
-- Wish for more demographic data
-- Duplicated tweets
-
-###Future Directions
-
-Larger sample, more time points. Hindered by cost. 
+Nevertheless, these limitations are offset by strengths. The balanced nature of this study allowed us to get closer to making causal claims of racial impacts on the percentage of negative words. Furthermore, though it would have been favorable to gather more tweets, this study used more data than many previous studies and therefore offers previously untapped quantitative insights. 
 
