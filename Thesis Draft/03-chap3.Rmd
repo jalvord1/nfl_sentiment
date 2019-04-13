@@ -285,7 +285,8 @@ tweet_words %>%
   rename(`Status ID` = status_id, `Word` = word) %>%
   kable(caption = "Head of Tweet Words Data Frame",
       caption.short = "tweetwords") %>%
-  kable_styling(bootstrap_options = "striped", latex_options = "hold_position")
+  kable_styling(bootstrap_options = "striped", 
+                latex_options = "hold_position")
 ```
 
 An additional step was necessary to add sentiments to these words. The `tidytext` package includes three lexicons containing words and their corresponding sentiments. The three include `AFINN` from @afinn, `bing` from @hu2004mining, and `nrc` from @Mohammad13. The first assigns words with a number from -5 to 5, with 5 being the most positive words and -5 being the most negative words. The second simply assigns words as positive or negative. The third assigns words in a binary fashion into the categories of positive, negative, anger, anticipation, disgust, fear, joy, sadness, surprise, and trust. For our purposes, we are using the `bing` lexicon. For simple counts of sentiment across the whole tweets data set, we simply join the `bing` lexicon to the words data set.
@@ -303,7 +304,8 @@ full_sentiments %>%
   rename(`Status ID` = status_id, `Word` = word, `Sentiment` = sentiment) %>%
   kable(caption = "Head of Tweet Words with Sentiment Data Frame",
       caption.short = "tweetwordssent") %>%
-  kable_styling(bootstrap_options = "striped", latex_options = "hold_position")
+  kable_styling(bootstrap_options = "striped", 
+                latex_options = "hold_position")
 ```
 
 ### Sentiment Analysis by Player
@@ -396,7 +398,8 @@ starters_sentiment %>%
   head(n = 10L) %>%
   kable(caption = "Head of Starters Data Frame with Sentiment Percentages",
       caption.short = "sentimentdf") %>%
-  kable_styling(bootstrap_options = "striped", latex_options = "hold_position")
+  kable_styling(bootstrap_options = "striped", 
+                latex_options = "hold_position")
 ```
 
 From here, we created visualizations comparing average negative and positive percentages across different groups, including race, team, and position. 
@@ -450,7 +453,8 @@ full_name <- c(names, twitter)
 #stop words should include names and twitter handles
 my_stop_words <- stop_words %>% 
     dplyr::select(-lexicon) %>% 
-    bind_rows(data.frame(word = c("https", "t.co", "rt", "amp","4yig9gzh5t","fyy2ceydhi","78","fakenews", "na", 
+    bind_rows(data.frame(word = c("https", "t.co", "rt", "amp","4yig9gzh5t",
+                                  "fyy2ceydhi","78","fakenews", "na", 
                                   "jeuct0obcr", "3", "1", full_name))) %>%
     unnest_tokens(word,word)
 
@@ -502,7 +506,7 @@ ggplot(starters_sent_n %>%
 ```
 In \@ref(fig:tweetspats), The players with the most tweets are Tom Brady, Julian Edelman, Stephen Gostkowski, Sony Michel, and Rob Gronkowski. Tom Brady is the star quarterback for the Patriots. As the quarterback, most plays revolve around his actions. Julian Edelman is a wide receiver and was named the MVP of Super Bowl LIII. Stephen Gostkowski is the kicker. The kicker's performance, especially in a Super Bowl, is important as the three points from a field goal can make or break the game outcome. Sony Michel is a running back and Rob Gronkowski is the Patriot's popular tight end. The position of these players leads them to have a lot of contact with the ball throughout the game. Quite a few players had so few tweets compared to the top few players that it cannot be determined from this visualization the exact number of tweets each player had. Below is a table that includes each player, their position, race, and number of tweets. 
 
-```{r tweetspatst, echo=FALSE, message=FALSE, warning=FALSE}
+```{r tweetspatst, echo=FALSE, message=FALSE, warning=FALSE, size = "small"}
 starters_sent_n %>%
   filter(team == "NE") %>%
   dplyr::select(name_clean, position, off_def_sp, Race, n) %>%
@@ -513,7 +517,8 @@ starters_sent_n %>%
   rename(Name = name_clean) %>%
   kable(caption = "Number of Tweets per Patriots Player",
       caption.short = "tweetspatst") %>%
-  kable_styling(bootstrap_options = "striped", latex_options = "hold_position")
+  kable_styling(bootstrap_options = "striped", 
+                latex_options = "hold_position")
 ```
 
 
@@ -533,7 +538,7 @@ ggplot(starters_sent_n %>%
 ```
 In figure \@ref(fig:tweetsrams), the players with the most tweets are Jared Goff, Todd Gurley, Aaron Donald, Andrew Witworth, and Johnny Hekker. Those first two players are the quarterback and leading running back, respectively. Aaron Donald is a defensive tackle, Andrew Witworth is an offensive tackle, and Johnny Hekker is the punter. Unlike with the Patriots, these players are not necessarily those who would have the most contact with the ball. Again, the number of tweets for many players cannot be determined based on this visualization. Below is another table of each players demographic information and number of tweets.
 
-```{r tweetsramst, message=FALSE, warning=FALSE, echo=FALSE}
+```{r tweetsramst, message=FALSE, warning=FALSE, echo=FALSE, size="small"}
 starters_sent_n %>% 
   filter(team == "LA") %>%
   dplyr::select(name_clean, position, Race, off_def_sp, n) %>%
@@ -544,7 +549,8 @@ starters_sent_n %>%
   rename(Name = name_clean) %>%
   kable(caption = "Number of Tweets per Rams Player",
       caption.short = "tweetsramst") %>%
-  kable_styling(bootstrap_options = "striped", latex_options = "hold_position")
+  kable_styling(bootstrap_options = "striped", 
+                latex_options = "hold_position")
 ```
 
 A few observations from tables \@ref(tab:tweetspatst) and \@ref(tab:tweetsramst) are that the player with the most tweets on both teams is the quarterback and a majority of the players in the top 5 are offensive players. 

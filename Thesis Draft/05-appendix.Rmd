@@ -7,10 +7,10 @@ If you feel it necessary to include an appendix, it goes here.
 -->
 
 
-# The First Appendix
+# Data Appendix
 
 ###Python function to gather tweets mentioning names
-```{r, eval = FALSE, size = "small"}
+```{python, eval = FALSE, size = "small"}
 def get_tweets_name(data, start, end):
     
     #getting the twitter handles
@@ -113,7 +113,7 @@ def get_tweets_name(data, start, end):
 
 
 ###Python function to gather tweets mentioning handles
-```{r, eval = FALSE, size = "small"}
+```{python, eval = FALSE, size = "small"}
 def get_tweets_handle(data, start, end):
     
     #getting the twitter handles
@@ -238,7 +238,8 @@ for(i in 1:24) {
   #creating df of stop words  
   my_stop_words <- stop_words %>% 
     select(-lexicon) %>% 
-    bind_rows(data.frame(word = c("https", "t.co", "rt", "amp","4yig9gzh5t","fyy2ceydhi","78","fakenews")))
+    bind_rows(data.frame(word = c("https", "t.co", "rt", "amp","4yig9gzh5t",
+                                  "fyy2ceydhi","78","fakenews")))
 
   #anti-join with stop words to filter those words out
   tweet_words <- words %>% 
