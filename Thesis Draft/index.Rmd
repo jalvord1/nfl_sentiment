@@ -2,7 +2,7 @@
 author: 'Julianna Alvord'
 date: 'May 13, 2019'
 institution: 'Smith College'
-#division: 'Mathematics and Natural Sciences'
+division: 'Statistical & Data Sciences'
 advisor: 'Ben Baumer'
 altadvisor: 'Randi Garcia'
 # Delete line 6 if you only have one advisor
@@ -16,6 +16,7 @@ output:
  number_sections: true
 header-includes:
     - \usepackage{setspace}\doublespacing
+    - \usepackage{array}
 # thesisdown::thesis_gitbook: default
 #  thesisdown::thesis_word: default
 #  thesisdown::thesis_epub: default
@@ -28,7 +29,7 @@ abstract: |
 # like below, use a command like that for the abstract above.  Note that a tab is 
 # needed on the line after the |.
 acknowledgements: |
-  I want to thank a few people.
+  I want to thank my advisors, Ben and Randi, for their unwavering support and willingness to share their expertise. I would also like to thank my family and friends for putting up with me during this process.
 bibliography: bib/thesis.bib
 # Download your specific bibliography database file and refer to it in the line above.
 csl: csl/apa.csl

@@ -19,6 +19,10 @@ library(stats)
 library(visreg)
 library(nflscrapR)
 library(multilevel)
+library(lmerTest)
+library(gmodels)
+library(lsmeans)
+library(lattice)
 ```
 
 #reading in data
@@ -292,6 +296,8 @@ write.csv(full_stats, "/Users/juliannaalvord/Documents/nfl sentiment/final_data/
 
 #MLM 
 ```{r}
+full_stats <- read_csv("/Users/juliannaalvord/Documents/nfl sentiment/final_data/full_stats.csv")
+
 #separating first and last to join with player stats data
 model_data <- model_data %>%
   separate(Name, c("first", "last"), " ") %>%
@@ -305,18 +311,23 @@ data2 <- model_data %>%
   filter(!is.na(neg_perc)) %>%
   mutate(win_bin = ifelse(outcome == "W", 1, 0),
          lose_bin = ifelse(outcome == "L", 1, 0),
-         black_bin = ifelse(Race == "B", 1, 0))
+         black_bin = ifelse(Race == "B", 1, 0),
+         white_bin = ifelse(Race == "W", 1, 0),
+         outcome_eff = ifelse(outcome == "W", 1, -1),
+         race_eff = ifelse(Race == "W", 1, -1),
+         position_eff = ifelse(position == "qb", 1, -1))
 
 
 data2 <- data2 %>%
-  mutate(yards_fixed = ifelse(position == "qb", full_yards/3, full_yards))
+  mutate(yards_fixed = ifelse(position == "qb", full_yards/3, full_yards),
+         yard_fixed_mean = yards_fixed - mean(yards_fixed))
 
 #running model 1 using lme
 model3 <- lme(neg_perc ~ outcome * Race + position + yards_fixed,
                random = ~ 1 | Team.x/name_2, data = data2)
 
 summary(model3)
-
+ci(model3)
 
 #box plot of neg perc by race and outcome
 ggplot(data2, aes(Race, neg_perc)) +
@@ -334,14 +345,6 @@ ggplot(data2, aes(yards_fixed, neg_perc)) +
   ylab("% of Negative Words")
 
 
-#different model (not working)
-model <- lmer(neg_perc ~ outcome * Race + position + yards_fixed
-              + (1|name_2) + (1|Team.x),
-              data = data2,
-              na.action = na.omit)
-
-summary(model)
-
 #histogram of my response variable
 ggplot(model_data, aes(neg_perc)) + 
   geom_histogram(bins = 10)
@@ -355,7 +358,100 @@ model_lm <- lm(neg_perc ~ outcome * Race + position + yards_fixed, data = data2)
 summary(model_lm)
 ```
 
+#LMER modeling
+```{r}
 
+
+#fuller model
+model_fuller <- lmer(neg_perc ~ outcome * Race * position * yards_fixed
+              + (1|name_2) + (1|Team.x),
+              data = data2,
+              na.action = na.omit)
+
+summary(model_fuller)
+
+#chi square test
+anova(model, model_fuller)
+
+#empty model
+model_null <- lmer(neg_perc ~ 1
+              + (1|name_2) + (1|Team.x),
+              data = data2,
+              na.action = na.omit)
+
+summary(model_null)
+
+#fullmodel
+model <- lmer(neg_perc ~ outcome * Race + position + yards_fixed
+              + (1|name_2) + (1|Team.x),
+              data = data2,
+              na.action = na.omit)
+
+summary(model)
+
+#confidence interval
+confint(model)
+
+#assumptions
+qqmath(model)
+#yes normal
+plot(model)
+#points seem random distributed above, below, to the left of, and to the right of the middle
+plot(resid(model),data2$neg_perc)
+#yes linear
+
+qqnorm(model3, ~ranef(., level=2))
+
+qqnorm(model3)
+
+#my ICCs are very very small
+
+anova(model_null, model)
+
+
+
+
+
+
+
+#how about no random effects for name
+model_2level <- lmer(neg_perc ~ outcome * Race + position + yards_fixed
+              + (1|Team.x),
+              data = data2,
+              na.action = na.omit)
+
+summary(model_2level)
+
+anova(model, model_2level)
+
+
+
+
+
+#TESTING
+model_1 <- lmer(pos_perc ~ outcome
+              + (1|name_2) + (1|Team.x),
+              data = data2,
+              na.action = na.omit)
+
+summary(model_1)
+```
+
+```{r}
+1.649/(1.649+12.713+218.964)
+
+12.713/(1.649+12.713+218.964)
+
+20.820/(20.820+9.433+138.339)
+9.433/(20.820+9.433+138.339)
+
+1 - 9.433/12.713
+1 - 138.339/218.964
+
+data2 %>%
+  group_by(name_2) %>%
+  summarise(mean_neg_perc = mean(neg_perc))
+```
 
 
 

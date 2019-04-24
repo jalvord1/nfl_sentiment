@@ -87,25 +87,42 @@ def get_tweets_name(data, start, end):
     
     
     # We create a pandas dataframe as follows:
-    data_tweets = pd.DataFrame(data=[tweet.text for tweet in all_tweets], columns=['Tweets'])
+    data_tweets = pd.DataFrame(data=[tweet.text for tweet in all_tweets], 
+    columns=['Tweets'])
     
     #adding more columns
-    data_tweets['len']  = np.array([len(tweet.text) for tweet in all_tweets])
-    data_tweets['ID']   = np.array([tweet.id for tweet in all_tweets])
-    data_tweets['Date'] = np.array([tweet.created_at_datetime for tweet in all_tweets])
-    data_tweets['Likes']  = np.array([tweet.favorite_count for tweet in all_tweets])
-    data_tweets['RTs']    = np.array([tweet.retweet_count for tweet in all_tweets])
-    data_tweets['Quoted'] = np.array([tweet.quoted_tweet for tweet in all_tweets])
-    data_tweets['Q_or_RT'] = np.array([tweet.quote_or_rt_text for tweet in all_tweets])
-    data_tweets['User_ent_text'] = np.array([tweet.user_entered_text for tweet in all_tweets])
-    data_tweets['retweeted_tweet'] = np.array([tweet.retweeted_tweet for tweet in all_tweets])
-    data_tweets['user_mentions'] = np.array([tweet.user_mentions for tweet in all_tweets])
-    data_tweets['profile_location'] = np.array([tweet.profile_location for tweet in all_tweets])
-    data_tweets['in_reply_to_screen_name'] = np.array([tweet.in_reply_to_screen_name for tweet in all_tweets])
-    data_tweets['created_at_string'] = np.array([tweet.created_at_string for tweet in all_tweets])
-    data_tweets['tweet_type'] = np.array([tweet.tweet_type for tweet in all_tweets])
-    data_tweets['retweeted_tweet'] = np.array([tweet.retweeted_tweet for tweet in all_tweets])
-    data_tweets['all_text'] = np.array([tweet.all_text for tweet in all_tweets])
+    data_tweets['len']  = np.array([len(tweet.text) 
+    for tweet in all_tweets])
+    data_tweets['ID']   = np.array([tweet.id 
+    for tweet in all_tweets])
+    data_tweets['Date'] = np.array([tweet.created_at_datetime 
+    for tweet in all_tweets])
+    data_tweets['Likes']  = np.array([tweet.favorite_count 
+    for tweet in all_tweets])
+    data_tweets['RTs']    = np.array([tweet.retweet_count 
+    for tweet in all_tweets])
+    data_tweets['Quoted'] = np.array([tweet.quoted_tweet 
+    for tweet in all_tweets])
+    data_tweets['Q_or_RT'] = np.array([tweet.quote_or_rt_text 
+    for tweet in all_tweets])
+    data_tweets['User_ent_text'] = np.array([tweet.user_entered_text 
+    for tweet in all_tweets])
+    data_tweets['retweeted_tweet'] = np.array([tweet.retweeted_tweet 
+    for tweet in all_tweets])
+    data_tweets['user_mentions'] = np.array([tweet.user_mentions 
+    for tweet in all_tweets])
+    data_tweets['profile_location'] = np.array([tweet.profile_location 
+    for tweet in all_tweets])
+    data_tweets['in_reply_to_screen_name'] = np.array([tweet.in_reply_to_screen_name 
+    for tweet in all_tweets])
+    data_tweets['created_at_string'] = np.array([tweet.created_at_string 
+    for tweet in all_tweets])
+    data_tweets['tweet_type'] = np.array([tweet.tweet_type 
+    for tweet in all_tweets])
+    data_tweets['retweeted_tweet'] = np.array([tweet.retweeted_tweet 
+    for tweet in all_tweets])
+    data_tweets['all_text'] = np.array([tweet.all_text 
+    for tweet in all_tweets])
     
     
     return data_tweets
@@ -190,25 +207,41 @@ def get_tweets_handle(data, start, end):
     
     
     # We create a pandas dataframe as follows:
-    data_tweets = pd.DataFrame(data=[tweet.text for tweet in all_tweets], columns=['Tweets'])
+    data_tweets = pd.DataFrame(data=[tweet.text for tweet in all_tweets], 
+    columns=['Tweets'])
     
     #adding more columns
-    data_tweets['len']  = np.array([len(tweet.text) for tweet in all_tweets])
-    data_tweets['ID']   = np.array([tweet.id for tweet in all_tweets])
-    data_tweets['Date'] = np.array([tweet.created_at_datetime for tweet in all_tweets])
-    data_tweets['Likes']  = np.array([tweet.favorite_count for tweet in all_tweets])
-    data_tweets['RTs']    = np.array([tweet.retweet_count for tweet in all_tweets])
-    data_tweets['Quoted'] = np.array([tweet.quoted_tweet for tweet in all_tweets])
-    data_tweets['Q_or_RT'] = np.array([tweet.quote_or_rt_text for tweet in all_tweets])
-    data_tweets['User_ent_text'] = np.array([tweet.user_entered_text for tweet in all_tweets])
+    data_tweets['len']  = np.array([len(tweet.text) 
+    for tweet in all_tweets])
+    data_tweets['ID']   = np.array([tweet.id 
+    for tweet in all_tweets])
+    data_tweets['Date'] = np.array([tweet.created_at_datetime 
+    for tweet in all_tweets])
+    data_tweets['Likes']  = np.array([tweet.favorite_count 
+    for tweet in all_tweets])
+    data_tweets['RTs']    = np.array([tweet.retweet_count 
+    for tweet in all_tweets])
+    data_tweets['Quoted'] = np.array([tweet.quoted_tweet 
+    for tweet in all_tweets])
+    data_tweets['Q_or_RT'] = np.array([tweet.quote_or_rt_text 
+    for tweet in all_tweets])
+    data_tweets['User_ent_text'] = np.array([tweet.user_entered_text 
+    for tweet in all_tweets])
+    data_tweets['retweeted_tweet'] = np.array([tweet.retweeted_tweet 
+    for tweet in all_tweets])
+    data_tweets['user_mentions'] = np.array([tweet.user_mentions 
+    for tweet in all_tweets])
+    data_tweets['profile_location'] = np.array([tweet.profile_location 
+    for tweet in all_tweets])
+    data_tweets['in_reply_to_sn'] = np.array([tweet.in_reply_to_screen_name 
+    for tweet in all_tweets])
+    data_tweets['created_at_string'] = np.array([tweet.created_at_string 
+    for tweet in all_tweets])
+    data_tweets['tweet_type'] = np.array([tweet.tweet_type 
+    for tweet in all_tweets])
     data_tweets['retweeted_tweet'] = np.array([tweet.retweeted_tweet for tweet in all_tweets])
-    data_tweets['user_mentions'] = np.array([tweet.user_mentions for tweet in all_tweets])
-    data_tweets['profile_location'] = np.array([tweet.profile_location for tweet in all_tweets])
-    data_tweets['in_reply_to_screen_name'] = np.array([tweet.in_reply_to_screen_name for tweet in all_tweets])
-    data_tweets['created_at_string'] = np.array([tweet.created_at_string for tweet in all_tweets])
-    data_tweets['tweet_type'] = np.array([tweet.tweet_type for tweet in all_tweets])
-    data_tweets['retweeted_tweet'] = np.array([tweet.retweeted_tweet for tweet in all_tweets])
-    data_tweets['all_text'] = np.array([tweet.all_text for tweet in all_tweets])
+    data_tweets['all_text'] = np.array([tweet.all_text 
+    for tweet in all_tweets])
     
     
     return data_tweets
