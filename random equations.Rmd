@@ -1,0 +1,35 @@
+---
+title: "equations"
+author: "Julianna Alvord"
+date: "4/23/2019"
+header-includes:
+    - \usepackage{setspace}\doublespacing
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Level 1:
+$~$
+
+$negperc_{tij} = \beta_{0ij} + \beta_{1ij}totalyards_{tij} + \varepsilon_{tij}$
+
+Level 2:
+$~$
+
+$\beta_{0ij} = \gamma_{00j} + \gamma_{01j}race_{ij} + \gamma_{02j}position_{ij} + u_{0ij}$
+
+$\beta_{1ij} = \gamma_{10j}$
+
+Level 3:
+$~$
+
+$\gamma_{00j} = \delta_{000} + \delta_{001}outcome_{j} + v_{0j}$ 
+
+$\gamma_{01j} = \delta_{010} + \delta_{011}outcome_{j}$
+
+$\gamma_{02j} = \delta_{020}$
+
+$\gamma_{10j} = \delta_{100}$

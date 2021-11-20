@@ -171,15 +171,16 @@ sent <- function(t){
   
 names <- as.list(subset2$name_clean)
 
-datalist = list()
+index <- as.list(1:length(names))
 
-for(i in 1:24) {
+time1 <- paste0("t_", t)
+
+add_sentiments <- function(i) {
   
-  
-  #filter for each person and the correct time
+    #filter for each person and the correct time
   tweets <- tweets_final %>%
     filter(name_clean_final == names[i],
-           time == paste0("t_", t))
+           time == time1)
   
   #pick out words
   words <- tweets %>% 
@@ -210,7 +211,7 @@ for(i in 1:24) {
   mutate(player = names[i]) %>%
   spread(key = sentiment, value = n)
   
-  datalist[[i]] <- df_2
+  return(df_2)
   
   
   
@@ -226,12 +227,13 @@ for(i in 1:24) {
   #assigning df_name to df
   #assign(df_name, df_2)
   
-}
+
   
 #return(datalist)
+  
+}
 
-
-sentiment_full <- do.call(bind_rows, datalist)
+sentiment_full <- map_df(index, add_sentiments)
 
 sentiment_full <- sentiment_full %>%
   mutate(totalsentiment = negative + positive,

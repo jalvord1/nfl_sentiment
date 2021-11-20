@@ -1,0 +1,27 @@
+---
+title: "extras"
+author: "Julianna Alvord"
+date: "4/11/2019"
+output: html_document
+---
+
+After investigation, we realized that about half of the tweets appeared to be missing when the file was parsed. We knew this to be true because the `json` file contained about 1.2 million lines and every other line was a tweet, meaning there should have been around 600,000 tweets in the data frame once the file was parsed. However, only about 300,000 tweets appeared. We realized that the file might have been too large to parse at once so we split our file into halves using the terminal then parsed each of those individually. The first half contained 307056 tweets and the second contained 311572, for a total of 618628 tweets. The two data frames each containing half of the tweets were saved as .rda files for easier loading in the future.
+
+```{r, eval=FALSE, size = "small"}
+#first half
+filename2 <- "/Users/juliannaalvord/Documents/nfl sentiment/sb analysis/sb_tweets_half1.json"
+
+#parse those tweets from above
+rt <- parse_stream(filename2)
+
+#second half
+filename3 <- "/Users/juliannaalvord/Documents/nfl sentiment/sb_tweets_half2.json"
+
+#parse tweets from above
+rt2 <- parse_stream(filename3)
+
+#saving these parsed files (each half individually)
+save(rt2, file = "/Users/juliannaalvord/Documents/nfl sentiment/sb_tweets_half1.rda")
+
+save(rt3, file = "/Users/juliannaalvord/Documents/nfl sentiment/sb_tweets_half2.rda")
+```

@@ -17,7 +17,7 @@ library(readr)
 
 #loading in data
 ```{r}
-starters <- read.csv("/Users/juliannaalvord/Documents/nfl sentiment/sb_starters.csv", stringsAsFactors = FALSE)
+starters <- read.csv("/Users/juliannaalvord/Documents/nfl sentiment/sb analysis/sb_starters.csv", stringsAsFactors = FALSE)
 
 #pulling out player names
 name <- starters$players

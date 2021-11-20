@@ -34,7 +34,7 @@ We have two main hypotheses. First, we hypothesize that during a game that was w
 
 ###Full-Archive Twitter API
 
-In order to gather tweets through Twitter's APIs, three options are available: the standard, 30-day archive, and the full-archive searches. Within the advanced search methods (30-day and full archive), there is a free "sandbox" option to allow researchers to test applications or other functions. The details of these can be found in Chapter 1. G iven our desire to focus on games from 2017, the chosen method for this project is the premium full-archive search. This method has strict limits in terms of the number of tweets that can be scraped per month. Below is an image that specifies these limits.
+In order to gather tweets through Twitter's APIs, three options are available: the standard, 30-day archive, and the full-archive searches. Within the advanced search methods (30-day and full archive), there is a free "sandbox" option to allow researchers to test applications or other functions. The details of these can be found in Chapter 1. Given our desire to focus on games from 2017, the chosen method for this project is the premium full-archive search. This method has strict limits in terms of the number of tweets that can be scraped per month. Below is an image that specifies these limits.
 
 ```{r, echo = FALSE, fig.cap="Twitter Full-Archive Search Limits", out.width = "475px"}
 include_graphics(path = "api_limits.png", auto_pdf = TRUE)
@@ -54,7 +54,7 @@ Had we instead randomly chosen 12 white and 12 black players with 8 being quarte
 
 Below is a table of the players, their race, position, corresponding team.
 
-```{r, warning = FALSE, message=FALSE, echo = FALSE}
+```{r, warning = FALSE, message=FALSE, include = FALSE}
 subset <- read.csv("/Users/juliannaalvord/Documents/nfl sentiment/final_data/final_subset.csv", stringsAsFactors = F)
 
 qb <- c("Alex Smith", "Jameis Winston", "Joe Flacco", "Carson Wentz", "Cam Newton", 
@@ -62,7 +62,9 @@ qb <- c("Alex Smith", "Jameis Winston", "Joe Flacco", "Carson Wentz", "Cam Newto
   
 subset <- subset %>%
   mutate(Position = ifelse(Name %in% qb, "QB", "R"))
-  
+```
+
+```{r subset, warning=FALSE, message=FALSE, echo=FALSE}
 subset %>%
   dplyr::select(Name, Team, Position, Race) %>%
   arrange(Team, Position) %>%
@@ -73,7 +75,7 @@ subset %>%
 
 Further investigation reveals that Tampa Bay had a bye during week 1 of the 2017 season and Seattle, Dallas, and Cincinnati had byes during week 6 of the 2017 season. Therefore, if we gather tweets for all 6 games, we would have missing values. Instead, we decided to choose 5 time points for each team. For the three teams with a bye during week 6, games 1-5 were chosen and for the other 5 teams, games 2-6 were chosen. In total, we would gather tweets for 24 players across 5 games. This totals 120 different observations. Since we are limited to 250,000 tweets, approximately 2083 tweets could be gathered per player per game.
 
-These 24 players are added to a data set. Also included are variables corresponding to their Twitter handle, race, position, and starting and ending times for each 5 games. It is important to us that the tweets are gathered during game play in order to limit extraneous factors that could affect sentiments toward a player. Given that the average NFL game time in 2016 was just above 3 hours and 8 minutes @gametime2016, we are limiting the time period to 3 hours and 15 minutes after the start of the game.
+These 24 players are added to a data set shown in Table \@ref(tab:subset). Also included are variables corresponding to their Twitter handle, race, position, and starting and ending times for each 5 games. It is important to us that the tweets are gathered during game play in order to limit extraneous factors that could affect sentiments toward a player. Given that the average NFL game time in 2016 was just above 3 hours and 8 minutes @gametime2016, we are limiting the time period to 3 hours and 15 minutes after the start of the game.
 
 Race is determined by our own perceptions. To avoid our biases, it would be ideal to determine race by a personally identified racial/ethnic code. However, this information is not available.
 
@@ -103,7 +105,7 @@ def get_data(teams):
 
 The second and third functions are more complex. They are almost exactly the same except that one searches Twitter for the players' full names and the other searches for their twitter handles. The arguments of these functions include a data set as well as start and end time identifiers. From there, either the full names within the player name column or twitter handles are made into a list. Then, to grab the start and end times, the first items from the columns that match the start and end arguments are selected and saved as objects. Once these objects have been created, the function gathers tweets using two functions from the `searchtweets` library: `gen_rule_payload()` and `ResultStream()`. The first takes a query, start time, end time, and maximum results per request specification. Our function loops through each name or twitter handle and enters it as the query. Then the start and end objects are used as the start and end times. The maximum tweets per request, 500, is kept constant. Added to the query is a string `-is:retweet`, which limits the tweets to exclude those which are retweeted. The rule that is specified using the previous function is then added for the `rule_payload` argument of the `ResultStream()` function. This second function also requires the maximum number of results and pages to search through to be specified, which we kept constant at 2000 and 4, respectively. The final argument is our authentication object. 
 
-Below is the tweet-gathering loop from one of our functions. Both entire functions can be found in the data appendix. 
+Below is the tweet-gathering loop from one of our functions. The entire function that searches for players' full names can be found in the data appendix. 
 
 ```{python, eval = FALSE, size = "small"}
 #running loop for tweets
@@ -153,7 +155,7 @@ data_t1_2_tweets.to_csv("~PATH/tweets_t1_1.csv", index = False)
 data_t1_2_tweetsH.to_csv("~PATH/tweets_t1_1_H.csv", index = False)
 ```
 
-After gathering tweets for all of the teams for each time point (week of games), all of the data frames are row binded. That larger data frame is then saved as a file.
+After gathering tweets for all of the teams for each time point (week of games), all of the data frames are combined. That larger data frame is then saved as a file.
 
 ```{python, eval = FALSE, size = "small"}
 #binding tweets from t1 together
@@ -168,13 +170,14 @@ T1.to_csv("~PATH/tweets_t1_all.csv", index = False)
 
 ###Updating cleaning and sentiment analysis from the Super Bowl
 
-We then load the data frames containing the tweets and metadata from each time point into `R` for cleaning. Luckily, these data have the same format as the data from the first study. Therefore, many of the same cleaning techniques are used. However, before these data frames are all combined, a column containing a time identifying string (ex. "t_1" for the tweets from the first week), is added. Then, these five data frames are combined to create one data frame that contains all of the gathered tweets.
+We then load the data frames containing the tweets and metadata from each time point into `R` for cleaning. Luckily, these data have the same format as the data from the first study. Therefore, many of the same cleaning techniques are used. However, before these data frames are all combined, a column containing a time identifying string (ex. `t_1` for the tweets from the first week), is added. Then, these five data frames are combined to create one data frame that contains all of the gathered tweets.
 
 ```{r, eval = FALSE, size = "small"}
 #loading in the data
 for (i in 1:length(files)) {
   
-  assign(paste("t", i, sep = "_"), read.csv(paste(path, files[i], sep = "")))
+  assign(paste("t", i, sep = "_"), read.csv(paste(path, files[i], 
+                                                  sep = "")))
   
 }
 
@@ -211,78 +214,85 @@ Again, our functions and techniques from the previous study are employed with sl
 
 ```{r, eval = FALSE, size = "small"}
 #creating data frame with additional sentiments
-extra<-data.frame(c("rings", "ring", "history", "clutch", 
+extra<-data.frame(word = c("rings", "ring", "history", "clutch", 
                     "congrats", "dynasty", "goat", "g.o.a.t."), 
-               c("positive", "positive", "positive", "positive", 
-                 "positive", "positive", "positive", "positive"))
-names(extra) <- c("word", "sentiment")
+               sentiment = "positive")
 
 #binding to bing lexicon
 bing_lex <- get_sentiments("bing")
 
-sent_full <- rbind(bing_lex, extra)
+sent_full <- bind_rows(bing_lex, extra)
 ```
 
 From there, the same loop run in the previous study could be used if we wanted the positive and negative word counts for each player across all five time points. However, for the purpose of our study, we wrote an altered function that determines the sentiments for each player at each time point. This was done by adding a time argument that filters the tweets for that time point. Also, within the function, the other variables of total sentiment, negative word percentage, positive word percentage, time, and player name are added to the counts data frame. 
 
 ```{r, eval = FALSE, size = "small"}
-sent_tall <- function(t){
+sent <- function(t){
   
-  names <- as.list(subset2$name_clean)
+#list of names
+names <- as.list(subset2$name_clean)
 
-  datalist = list()
+#list of integers
+index <- as.list(1:length(names))
 
-  for(i in 1:24) {
+#creating time object to filter df
+time1 <- paste0("t_", t)
+
+add_sentiments <- function(i) {
   
-    #filter for each person and the correct time
-    tweets <- tweets_final %>%
-      filter(name_clean_final == names[i],
-            time == paste0("t_", t))
+  #filter for each person and the correct time
+  tweets <- tweets_final %>%
+    filter(name_clean_final == names[i],
+           time == time1)
   
-    #pick out words
-    words <- tweets %>% 
-      select(ID, full_text_low) %>% 
-      unnest_tokens(word,full_text_low)
+  #one word per row
+  words <- tweets %>% 
+    select(ID, full_text_low) %>% 
+    unnest_tokens(word,full_text_low)
   
-    #creating df of stop words  
-    my_stop_words <- stop_words %>% 
-      select(-lexicon) %>% 
-      bind_rows(data.frame(word = c("https", "t.co", "rt", "amp",
-                                    "4yig9gzh5t","fyy2ceydhi","78","fakenews")))
+  #creating df of stop words  
+  my_stop_words <- stop_words %>% 
+    select(-lexicon) %>% 
+    bind_rows(data.frame(word = c("https", "t.co", "rt", 
+                                  "amp","4yig9gzh5t","fyy2ceydhi",
+                                  "78","fakenews")))
 
-    #anti-join with stop words to filter those words out
-    tweet_words <- words %>% 
-      anti_join(my_stop_words)
+  #anti-join with stop words to filter those words out
+  tweet_words <- words %>% 
+    anti_join(my_stop_words)
 
-    #joining sentiments with non-stop words from tweets
-    fn_sentiment <- tweet_words %>% 
-      left_join(sent_full) 
+  #joining sentiments with non-stop words from tweets
+  fn_sentiment <- tweet_words %>% 
+    left_join(sent_full) 
   
-    #creating df with n of sentiments
-    df <- fn_sentiment %>% 
-      filter(!is.na(sentiment)) %>% 
-      group_by(sentiment) %>% 
-      summarise(n=n())
+  #creating df with n of sentiments
+  df <- fn_sentiment %>% 
+    filter(!is.na(sentiment)) %>% 
+    group_by(sentiment) %>% 
+    summarise(n=n())
 
-    #making df of sentiments for each person
-    df_2 <- df %>%
-      mutate(player = names[i]) %>%
-      spread(key = sentiment, value = n)
+  #making df of sentiments for each person
+  df_2 <- df %>%
+  mutate(player = names[i]) %>%
+  spread(key = sentiment, value = n)
   
-    datalist[[i]] <- df_2
-
-  }
-
-  sentiment_full <- do.call(bind_rows, datalist)
-
-  sentiment_full <- sentiment_full %>%
-    mutate(totalsentiment = negative + positive,
-          neg_perc = negative/totalsentiment * 100,
-          pos_perc = positive/totalsentiment *100,
-          time = paste0("t_", t),
-          player = as.character(player))
+  return(df_2)
   
-  return(sentiment_full)
+}
+
+#running add sentiment function for each player
+sentiment_full <- map_df(index, add_sentiments)
+
+#creating percentages
+sentiment_full <- sentiment_full %>%
+  mutate(totalsentiment = negative + positive,
+         neg_perc = negative/totalsentiment * 100,
+         pos_perc = positive/totalsentiment *100,
+         time = paste0("t_", t),
+         player = as.character(player))
+  
+
+return(sentiment_full)
 
 }
 ```
@@ -332,26 +342,28 @@ week1_to_6_filt <- week1_to_6 %>%
   filter(home_team %in% teams | away_team %in% teams)
 ```
 
-After that, 6 data frames are created that each contain the game ids for the corresponding week. Weeks 1 and 6 had additional filtering arguments to filter for the correct teams. From there, a column that included a players first initial and last name is added to the subset df. For each week, the game ids are added to a list. Then, a loop iterates through them and stats for that game are added to a different list (as a data frame) using the `player_game()` function of the `nflscrapr` package. Those data frames are subsequently combined. Once the data frame containing all the stats for the games of that week is constructed, it is filtered for the players of our subset. The variable of yards per game is creating by combining the three columns of passing yards, rushing yards, and receiving yards. 
+After that, 6 data frames are created that each contain the game ids for the corresponding week. Weeks 1 and 6 had additional filtering arguments to filter for the correct teams. From there, a column that includes the players first initial and last name is added to the subset data frame (from Table \@ref(tab:subset)). For each week, the game ids are added to a list. A function we wrote, `get_stats()`, gathers the stats for all players from the corresponding game using the `player_game()` function of the `nflscrapr` package. Then, we use the `map_df` function from the `purrr` package to run this function for each game of the week included in the list [@purrr]. Ultimately, this function combines the data frames from each game. Once the data frame containing all the stats for the games of that week is constructed, it is filtered for the players of our subset. The variable of yards per game is creating by combining the three columns of passing yards, rushing yards, and receiving yards. 
 
 ```{r, eval = FALSE, size = "small"}
 ##week 2
 #game ids added to list
 week2 <- as.list(week2$game_id)
 
-stats <- list()
+#list of integers
+index <- as.list(1:7)
 
 #looping through game ids to get stats 
-for (i in 1:7) {
+get_stats <- function(i) {
   
   df <- player_game(week2[i])
   
-  stats[[i]] <- df
+  return(df)
   
 }
 
-#binding data frames with stats
-week2_stats <- do.call(bind_rows, stats)
+#stats for all 7 games
+week2_stats <- map_df(index, get_stats)
+
 
 #pulling out names
 names_week2 <- subset2$name_2
@@ -414,7 +426,7 @@ $~$
 \begin{align*}
 negperc_{tij} = &\delta_{000} + \delta_{001}outcome_{j} + v_{0j} + \\
 &(\delta_{010} + \delta_{011}outcome_{j})race_{ij} + \\
-&(\delta_{020})position_{ij} + u_{0ij}) +\\
+&(\delta_{020})position_{ij} + u_{0ij} +\\
 &(\delta_{100})totalyards_{tij} + \varepsilon_{tij}
 \end{align*}
 
@@ -423,8 +435,8 @@ In final form, with all of the variables in the correct order, is written as:
 $~$
 \begin{align*}
 negperc_{tij} = &\delta_{000} + \delta_{001}outcome_{j} + \delta_{010}race_{ij} \\
-&+ \delta_{020}position_{ij} + \delta_{100}totalyards_{tij} +\\
-&\delta_{011}outcome_{j}race_{ij} + v_{0j} + u_{0ij} + \varepsilon_{tij}
+&+ \delta_{020}position_{ij} + \delta_{100}totalyards_{tij}\\
+&+\delta_{011}outcome_{j}race_{ij} + v_{0j} + u_{0ij} + \varepsilon_{tij}
 \end{align*}
 
 The fixed effects of this model include $\delta_{000}$, $\delta_{001}$, $\delta_{010}$, $\delta_{020}$, $\delta_{100}$, and $\delta_{020}$. The third level random effects is $v_{0j}$ which accounts for the random variance of predicted intercepts (average percentage of negative words) between teams. The second level random effect is $u_{0ij}$, which accounts for random variance of predicted intercepts for players within teams. Finally, the first level random effect is $\varepsilon_{tij}$, which accounts for random variance of predicted intercepts for players within teams across the five time points. These random effects are assumed to have means at zero and be normally distributed:
@@ -435,13 +447,13 @@ $u_{0ij} \sim N(0, \tau_{001})$
 
 $\varepsilon_{tij} \sim N(0, \sigma_{\varepsilon}^2)$
 
-This model keeps the effect of yards, position, race, and outcome fixed instead of allowing for variance across players nor teams. These variables are being kept constant because we do not have prior knowledge that would lead us to believe the effects of these variable are different across certain players or teams. The three random variance terms are accounting for the variance in average percentage of negative words across time points, players, and teams. 
+This model keeps the effect of yards, position, race, and outcome fixed instead of allowing for variance across players or teams. These variables are being kept constant because we do not have prior knowledge that would lead us to believe the effects of these variable are different across certain players or teams. The three random variance terms are accounting for the variance in average percentage of negative words across time points, players, and teams. 
 
-There are multiple reasons why we chose to use multilevel regression modeling instead of regular linear regression modeling. The main reason we chose this technique is because of the heirarchical nature of our data. If we did not account for the random variance at each level, we would be treating each observation as idependent when they are not. As a result, the standard errors will be underestimated and significance will be overstated. The standard errors for coefficients of higher-level predictor variables will be most affected. This could lead to more Type I errors.
+There are multiple reasons why we chose to use multilevel regression modeling instead of regular linear regression modeling. The main reason we chose this technique is because of the hierarchical nature of our data. If we did not account for the random variance at each level, we would be treating each observation as independent when they are not. As a result, the standard errors will be underestimated and significance will be overstated. The standard errors for coefficients of higher-level predictor variables will be most affected. This could lead to more Type I errors.
 
 A common method to estimate coefficients in multilevel regression is the maximum likelihood method. This is a general estimation procedure, which creates estimates of the population parameters that maximize the probability (maximum likelihood) of observing the data that are actually observed, given the model. The benefit of this estimation method is that it is generally robust, and produces estimates that are asymptotically efficient and consistent. However, in this study, our regression coefficients are estimated using a slightly altered method, known as REML (restricted maximum likelihood). During estimation using this method, only the variance components are a part of the likelihood function, and the coefficients are estimated in a second estimation step. This produces parameter estimates with associated standard errors as well as an overall deviance, which is a function of the likelihood [@hox2010multilevel]. The reason for using REML instead of the standard ML is due to our small sample size of 120 observations. The REML method estimates the random effects after removing the fixed effects of the model. Unlike other methods, which do not account for the degrees of freedom lost by estimating fixed effects, REML produces estimates that are less biased in smaller sample sizes.
 
-To fit the above model in `R`, the `lme4` package is used [@lme4]. The function used is `lmer()`, which in our case, took two arguments: the formula and the data. Within the formula, our fixed and random effects were specified. The code used is below. 
+To fit the above model in `R`, the `lme4` package is used [@lme4]. The function used is `lmer()`, which in our case, takes two arguments: the formula and the data. Within the formula, we specify our fixed and random effects. The code used is below. 
 
 ```{r, eval = FALSE, size = "small"}
 model <- lmer(neg_perc ~ outcome * Race + position + yards_fixed
@@ -481,24 +493,26 @@ data2 <- model_data %>%
 
 data2 <- data2 %>%
   mutate(yards_fixed = ifelse(position == "qb", full_yards/3, full_yards))
+
+#write.csv(data2, "/Users/juliannaalvord/Documents/nfl sentiment/final_data/mlm_data.csv", row.names = FALSE)
 ```
 
-The mean percentage of negative words across all time points and players is `r round(mean(data2$neg_perc), 1)`%. This variable is fairly normally distributed, with a slight left scew.
+The mean percentage of negative words across all time points and players is `r round(mean(data2$neg_perc), 1)`%. This variable is fairly normally distributed, with a slight left skew, as shown in Figure \@ref(fig:dist).
 
-```{r, echo = FALSE, fig.cap="Histogram of Response Variable"}
+```{r dist, echo = FALSE, fig.cap="Histogram of Response Variable"}
 ggplot(data2, aes(neg_perc)) + geom_histogram(bins = 10) +
   theme_classic()+
   theme(axis.title.y = element_blank()) +
   xlab("Percentage of Negative Words")
 ```
 
-When breaking down by race and outcome, our two main variables of focus, the median percentage of negative words for a win is 46.2% for black players and 46.89% for white players. For a loss, the mean percentage of negative words is 65.17% for black players and 58.96%. 
+Next, we hoped to determine the mean percentage of negative words when breaking down by race and outcome, our two main variables of focus. As shown in Figure \@ref(fig:bargraph), the median percentage of negative words for a win is 46.2% for black players and 46.89% for white players. For a loss, the mean percentage of negative words is 65.17% for black players and 58.96%. 
 
 ```{r, include=FALSE}
 sent_tall_full1 <- read.csv("/Users/juliannaalvord/Documents/nfl sentiment/final_data/use_for_model1.csv", stringsAsFactors = F)
 ```
 
-```{r, echo = FALSE, fig.cap="Mean Percentage of Negative Words across Race and Outcome"}
+```{r, include = FALSE, fig.cap="Mean Percentage of Negative Words across Race and Outcome"}
 sent_tall_full1$outcome1 <- factor(sent_tall_full1$outcome, labels = c("Lost", "Won"))
 
 #gathering by race, player and sentiment
@@ -513,7 +527,9 @@ subset_sent_2 <- subset_sent_format %>%
 
 subset_sent_2 <- subset_sent_2 %>%
   filter(sentiment == "neg_perc")
+```
 
+```{r bargraph, echo = FALSE, warning=FALSE, message=FALSE, fig.cap="Mean Percentage of Negative Words across Race and Outcome"}
 #same viz but by outcome as well
 ggplot(subset_sent_2, aes(x = sentiment, y = mean_perc_sent, fill = Race)) +
   geom_bar(stat = "identity", position = "dodge", color = "black") +
@@ -532,17 +548,17 @@ ggplot(subset_sent_2, aes(x = sentiment, y = mean_perc_sent, fill = Race)) +
 ```
 
 ### Missing Data
-Tweets in this study are gathered at five different time points for the 24 players. This results in a final n of 120 observations. However, 6 of these 120 are missing due to a lack of tweets or sentiment words.
+Tweets in this study are gathered at five different time points for the 24 players. This results in a final $n$ of 120 observations. However, 6 of these 120 are missing due to a lack of tweets or sentiment words.
 
 ###Multi-level Model
 
-Below is a table with the results of our model. 
+Below is Table \@ref(tab:tab1) with the results of our model. 
 ```{r, message=FALSE, warning=FALSE, include = FALSE}
 mlm_model <- lmer(neg_perc ~ outcome * Race + position + yards_fixed
               + (1|name_2) + (1|Team.x),
               data = data2)
-summary(mlm_model)
-confint(mlm_model)
+#summary(mlm_model)
+#confint(mlm_model)
 ```
 
 ----------------------------------------------------------------------------------------
@@ -565,33 +581,35 @@ Table: (\#tab:tab1) Estimates of $\delta$ coefficients from our multilevel regre
 The resulting formula with the $\delta$ coefficients included is as follows:
 
 \begin{align*}
-{negperc} = &74.21 - 19.08\widehat{OutcomeW} - 7.22\widehat{RaceW} - 4.11\widehat{PositionR} -\\
-&0.09\widehat{Yards} + 6.74\widehat{OutcomeW:RaceW}
+{negperc} = &74.21 - 19.08\widehat{OutcomeW} - 7.22\widehat{RaceW} - 4.11\widehat{PositionR}\\
+& - 0.09\widehat{Yards} + 6.74\widehat{OutcomeW*RaceW}
 \end{align*}
 
-The intercept, $\delta_{000}$, of 74.21 means that the average percentage of negative words for black players during a loss is 74.21%, holding position and yards constant. We are 95% confident that the true value of the intercept is between 64.92% and 83.42%. The $\delta_{001}$ coefficient estimate of -19.08 means that on average, the percentage of negative words for black players decreases by 19.08 percentage points during a win, holding position and yards constant. We are 95% confident that the true value of this coefficient is between -25.19% and -13.01%. In this case, The $\delta_{010}$ coefficient estimate of -7.22 means that on average, the percentage of negative words during a loss decreases by 7.22% for white players relative to black players, holding position and yards constant. We are 95% confident that the true value of this coefficient is between -14.66% and 0.21%. The $\delta_{020}$ coefficient estimate of -4.11 means that on average, the percentage of negative words during a loss for black players decreases by 4.11% for receivers, holding yards constant. We are 95% confident that the true value of this coefficient is between -10.37% and 2.14%. The $\delta_{100}$ coefficient estimate of -0.09 means that on average, for each 1 additional yard gained by a player, the percentage of negative words for black players during a win decreases by 0.09%, holding position constant. We are 95% confident that the true value of this coefficient is between -0.16% and -0.01%. The coefficient estimate of 6.72 for the interaction between race and outcome means that during a win, the percentage of negative words for white players increases by 6.72%, holding position and yards constant. We are 95% confident that the true value of this coefficient is between -2.06% and 15.82%.
+The intercept ($\delta_{000}$) of 74.21 means that the average percentage of negative words for black players with 0 yards during a loss is 74.21%. We are 95% confident that the true value of the intercept is between 64.92% and 83.42%. The $\delta_{001}$ coefficient estimate of -19.08 means that on average, the percentage of negative words for black players is 19.08 percentage points lower during a win for the same position and yardage. We are 95% confident that the true value of this coefficient is between -25.19% and -13.01%. In this case, The $\delta_{010}$ coefficient estimate of -7.22 means that on average, the percentage of negative words during a loss decreases by 7.22% for white players relative to black players for the same position and yardage. We are 95% confident that the true value of this coefficient is between -14.66% and 0.21%. The $\delta_{020}$ coefficient estimate of -4.11 means that on average, the percentage of negative words during a loss for black players decreases by 4.11% for receivers, holding yards constant. We are 95% confident that the true value of this coefficient is between -10.37% and 2.14%. The $\delta_{100}$ coefficient estimate of -0.09 means that on average, for each 1 additional yard gained by a receiver (3 yards for a quarterback), the percentage of negative words for black players during a win decreases by 0.09%, holding position constant. We are 95% confident that the true value of this coefficient is between -0.16% and -0.01%. The coefficient estimate of 6.72 for the interaction between race and outcome means that during a win, the percentage of negative words for white players increases by 6.72%, holding position and yards constant. We are 95% confident that the true value of this coefficient is between -2.06% and 15.82%.
 
-The coefficient estimates of two of our variables are considered statistically significant at the p < 0.05 mark. They are the outcome and total yards variable. Based on our hypothesis, we expected race to be a significant predictor of the percentage of negative words. The p-value for the coefficient estimate of this variable is 0.08 which technically falls above the significant cutoff. However, the difference between 0.08 and the significant cutoff of 0.05 is small. We have purposefully avoided language of statistical significant when describing the coefficient estimates as the designation of certain estimates as "significant" and "not significant" leads some to be considered "worthy" while others are not. Despite our race variable not reaching the arbitrary significant cutoff, we do not want the estimate to be deemed unworthy. The importance of the effect size of this variable cannot be understated, no matter the p-value. Take the example of Christian McCaffrey, who is perceived to be white, vs. Devin Funchess, who is perceived to be black, both of whom are receivers for the Carolina Panthers. If we compare the results of our model for these two players during a game that is lost where they each total 100 yards, the estimates are: 
+The coefficient estimates of two of our variables are considered statistically significant at the p < 0.05 mark. They are the outcome and total yards variable. Based on our hypothesis, we expected race to be a significant predictor of the percentage of negative words. The p-value for the coefficient estimate of this variable is 0.08 which technically falls above the significance cutoff. However, the difference between 0.08 and the significant cutoff of 0.05 is small. We have purposefully avoided language of statistical significance when describing the coefficient estimates as the designation of certain estimates as "significant" and "not significant" leads some to be considered "worthy" while others are not [@wasserstein2016asa]. Despite our race variable not reaching the arbitrary significant cutoff, we do not deem the estimate to be unworthy. The importance of the effect size of this variable cannot be understated, no matter the p-value. Take the example of Christian McCaffrey, who is perceived to be white, vs. Devin Funchess, who is perceived to be black, both of whom are receivers for the Carolina Panthers. If we compare the results of our model for these two players during a game that is lost where they each total 100 yards, the estimates are: 
 
-For Christian McCaffrey:
+__For Christian McCaffrey:__
+
 \begin{align*}
 {negperc} = &74.21 - 19.08(0) - 7.22(1) - 4.11(1) - 0.09(100) + 6.74(0)
 \end{align*}
 
 \begin{align*}
-{negperc} = 61.10%
+{negperc} = 54%
 \end{align*}
 
-For Devin Funchess:
+__For Devin Funchess:__
+
 \begin{align*}
 {negperc} = &74.21 - 19.08(0) - 7.22(0) - 4.11(1) - 0.09(100) + 6.74(0)
 \end{align*}
 
 \begin{align*}
-{negperc} = 68.32%
+{negperc} = 61%
 \end{align*}
 
-Despite an identical performance, these two players have vastly different amounts of negative sentiment with the only distinguishing feature between them being their race. 
+Despite an identical performance, these two players have vastly different amounts of negative sentiment with the only distinguishing feature between them being their race. To further put these results into perspective, the difference in negative words percentage between white and black players during a game that was lost is equal to a difference of approximately 80 yards for receivers and 240 yards for quarterbacks. In other words, Devin Funchess would need to gain 80 more yards than Christian McCaffrey during a game that was lost in order to have the same observed percentage of negative words.
 
 ### Assumptions
 
@@ -602,17 +620,15 @@ The assumptions for multilevel linear regression are the same as for simple line
 The assumption states that there must be a linear relationship between the explanatory and response variables. This is only applicable for the relationship between total yards and percentage of negative words as the other explanatory variables are binary.
 
 ```{r linearity, message=FALSE, warning=FALSE, echo = FALSE, fig.cap="Plot of Yards and Percentage of Negative Words for Linearity Assumption"}
-
 ggplot(data2, aes(yards_fixed, neg_perc)) +
   geom_point() +
   geom_smooth(method = "lm", se = FALSE) +
   xlab("Total Yards (standardized)") +
   ylab("Percentage of Negative Words") +
   theme_classic()
-
 ```
 
-As seen from figure \@ref(fig:linearity), there does appear to be a negative, linear relationship between total yards and percentage of negative words. Therefore, the linearity assumption is not violated.
+As seen from figure \@ref(fig:linearity), there does appear to be a negative linear relationship between total yards and percentage of negative words. Therefore, the linearity assumption is not violated.
 
 #### Normality
 
@@ -631,23 +647,23 @@ Figure \@ref(fig:normal1) plots the standardized residuals against the quantiles
 qqnorm(model3, ~ranef(., level=2))
 ```
 
-The figure above plots normality of our residuals at the player level. Like figure \@ref(fig:normal1), it appears that our residuals are fairly normally distributed at this level. 
+Figure \@ref(fig:normal2) plots normality of our residuals at the player level. Like figure \@ref(fig:normal1), it appears that our residuals are fairly normally distributed at this level. 
 
 ```{r normal3, message=FALSE, warning=FALSE, echo=FALSE, fig.cap="Plot of Residual Normality at the Third Level in our Data"}
 qqnorm(model3, ~ranef(., level=1))
 ```
 
-The normality of residuals from the team level is displayed in the above figure. These residuals appear less normally distributed than the residuals of the prior levels. However, it is harder to determine with so few residuals and even so, there does not appear to be enough evidence to conclude that our residuals are not normally distributed at this level. 
+The normality of residuals from the team level is displayed in Figure \@ref(fig:normal3). These residuals appear less normally distributed than the residuals of the prior levels. However, it is harder to determine with so few residuals and even so, there does not appear to be enough evidence to conclude that our residuals are not normally distributed at this level. 
 
 #### Homoscedasticity
 
 This assumption states that variances of the residuals must be equal across groups.
 
-```{r, homosc, message=FALSE, warning=FALSE, echo=FALSE, fig.cap="Fitted vs. Residual Plot"}
+```{r homosc, message=FALSE, warning=FALSE, echo=FALSE, fig.cap="Fitted vs. Residual Plot"}
 plot(mlm_model, xlab = "Fitted Value", ylab = "Residual")
 ```
 
-From figure \@ref(fig:homosc), there do not appear to be any patterns or trends in the distribution of the residuals which indicates an equal variance. 
+From Figure \@ref(fig:homosc), there do not appear to be any patterns or trends in the distribution of the residuals which indicates an equal variance. 
 
 #### Independence
 
@@ -666,7 +682,7 @@ ICC calculation at the team level:
 
 $~$
 
-$ICC_{V_j} = \sigma_{V_j}^2/(\sigma_{V_j}^2+\sigma_{U_ij}^2+\sigma_{\epsilon_tij}^2)$
+$ICC_{V_j} = \sigma_{V_j}^2/(\sigma_{V_j}^2+\sigma_{U_{ij}}^2+\sigma_{\epsilon_{tij}}^2)$
 
 ```{r, include =FALSE, eval = FALSE}
 model_null <- lmer(neg_perc ~ 1
@@ -686,11 +702,11 @@ ICC calculation at the player level:
 
 $~$
 
-$ICC_{U_ij} = \sigma_{U_ij}^2/(\sigma_{V_j}^2+\sigma_{U_ij}^2+\sigma_{\epsilon_tij}^2)$
+$ICC_{U_{ij}} = \sigma_{U_{ij}}^2/(\sigma_{V_j}^2+\sigma_{U_{ij}}^2+\sigma_{\epsilon_{tij}}^2)$
 
 $~$
 
-For our model, the ICC is 0.05 for level 3 (team level) and .007 for level 2 (player level). These numbers inform us that we have very little team variance and even less player variance. So, generally, this means that there is little evidence that football fans on Twitter feel more or less negatively about certain teams or certain players. The extremely small value at the player level may indicate that adding the random effect for players to our model is not neccesary. However, when running our 3 level model, we realize that instead of decreasing, the ICC at the player level increases to 0.12. We expect that when adding predictors, more of the random variance at the player and team levels would be explained by the model. While this is the case at the team level, it is not at the player level. 
+For our model, the ICC is 0.05 for level 3 (team level) and 0.007 for level 2 (player level). These numbers inform us that we have very little team variance and even less player variance. So, generally, this means that there is little evidence that football fans on Twitter feel more or less negatively about certain teams or certain players. The extremely small value at the player level may indicate that adding the random effect for players to our model is not neccesary. However, when running our 3 level model, we realize that instead of decreasing, the ICC at the player level increases to 0.12. We expect that when adding predictors, more of the random variance at the player and team levels would be explained by the model. While this is the case at the team level, it is not at the player level. 
 
 We expect there to be random variance between players due to some players being naturally liked more compared to others. Therefore, we were surpised that our ICC calculated from the null model is so small. To investigate this small ICC that increases when adding predictors, we first determined which variable was causing the largest increase in player level random variance. We found that this variable is game outcomes. This suggests that the players with naturally higher percentages of negative tweets are also on losing teams whereas the players with naturally lower percentages of negative tweets are also on winning teams. Essentially, by not looking at differences in outcome, the natural variance between players is being masked. 
 
@@ -698,7 +714,7 @@ After coming to this conclusion, we decided that there is sufficient evidence th
 
 ### Sensitivity Analysis
 
-Based on a number of factors discussed above, we agreed upon the three-level multilevel model. The next sections investigate the amount that our standard errors and p-values change depending on the modeling method. 
+Based on a number of factors discussed above, we decided upon the three-level multilevel model. The next sections investigate the amount that our standard errors and p-values change depending on the modeling method. 
 
 #### Two-level Model
 
@@ -758,7 +774,7 @@ model_lm <- lm(neg_perc ~ outcome * Race + position + yards_fixed, data = data2)
 ------------------------- --------------- -------------- -------------- -----------------
 Table: (\#tab:tab3) Estimates of $\beta$ coefficients from a basic linear regression model
 
-Once again, there are differences between table \@ref(tab:tab3) and table \@ref(tab:tab1) in terms of coefficients, standard errors, and p-values. While the results of either of the previous two models may appear more desirable given society's focus on statistical significance, these models are commiting Type I errors by under-estimating the standard errors of the coefficients.  
+Once again, there are differences between Table \@ref(tab:tab3) and Table \@ref(tab:tab1) in terms of coefficients, standard errors, and p-values. While the results of either of the previous two models may appear more preferable given society's focus on statistical significance, these models are commiting Type I errors by under-estimating the standard errors of the coefficients.  
 
 ##Discussion
 
@@ -768,13 +784,13 @@ The main research question for this project mainly involved differences between 
 
 While our model's coefficient estimate for position is negative, meaning that receivers receive fewer negative sentiments on average than quarterbacks, this effect size is not as strong. We did not expect there to be differences between the two positions but included this variable in order to control for position while investigating the relationship between race, outcome, and percentage of negative words.
 
-Our results are consistent with other studies that found that language for black and white football players is unequal, with black players receiving more negative sentiments than white players, especially during a loss. This disparity is evidence of Twitter-using football fan's racial bias, a phenomenom rarely studied without survey data. Unlike other research, this study uses data on a much larger scale to quantify previous findings. As stated in Chapter 1, @hylton2016your argue that further research involving more subtle forms of racism and racial discrimination in sports is necessary. Through this study, one of our main goals is to shed light on a subtle form of racism which takes form through racially disproportionate negative language.
+Our results are consistent with other studies that found that language for black and white football players is unequal, with black players receiving more negative sentiments than white players, especially during a loss. This disparity is evidence of Twitter-using football fan's racial bias, a phenomenon rarely studied without survey data. Unlike other research, this study uses data on a much larger scale to quantify previous findings. As stated in Chapter 1, @hylton2016your argue that further research involving more subtle forms of racism and racial discrimination in sports is necessary. Through this study, one of our main goals is to shed light on a subtle form of racism which takes form through racially disproportionate negative language.
 
 ###Limitations and Future Directions
 
 These results should be considered in light of their limitations. First, some players are missing data at certain time points. This means that no positive or negative words were included in the tweets for those players at that time point. This lowered our already small sample size which can have an affect on the validity of our results. The small sample size was partially due to the Twitter API limits. In order to gather enough tweets to find positive and negative words, we could not have realistically added more time points. If we were able to gather more than 250,000 tweets, we could have added more time points while still gathering enough tweets for sentiment analyses. This would have increased our sample size and made our estimates more accurate. By doing so, important relationships may have been revealed.
 
-Additionally, this study only gathers tweets for 24 players, which is a small subset of the entire NFL roster of quarterbacks and receivers. With more players added to the study, our results may be more generalizable. In the future, it would be beneficial to gain higher access to Twitter's API search. Unfortunately, this would require a larger monetary contribution which was not possible in the current study. Luckily, as seen from Study 1, there are other methods of accessing the API which are free. With enough planning, tweets could be gathered using the streaming method during the games of the upcoming season. This would both increase the subset of players and number of total tweets. 
+Additionally, this study only gathers tweets for 24 players, which is a small subset of the entire NFL roster of quarterbacks and receivers. With more players added to the study, our results may be more generalizable. In the future, it would be beneficial to gain greater access to Twitter's API search. Unfortunately, this would require a larger monetary contribution which was not possible in the current study. Luckily, as seen from Study 1, there are other methods of accessing the API which are free. With enough planning, tweets could be gathered using the streaming method during the games of the upcoming season. This would both increase the subset of players and number of total tweets. 
 
 Another limitation to this study is that the race of the players is based on our perception and could be unreliable. In the future, having multiple people offering their perceptions of the players' races could improve results and reduce biases. In addition to the race variable, adding more demographic data about the players or extra variables of individual performance could better disseminate the relationship of interest from our research question.
 
